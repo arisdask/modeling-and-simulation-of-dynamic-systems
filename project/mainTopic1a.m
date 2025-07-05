@@ -1,6 +1,7 @@
-%% Constrained Parameter Estimation for Linear Systems
+%% Modeling and Simulation of Dynamic Systems - Project - Topic 1a
+% Author: Aristeidis Daskalopoulos - AEM:10640
+%
 % Implementation of mixed structure parameter estimation with constraints
-% Author: Based on mathematical analysis provided
 
 clear; clc; close all;
 addpath('src\');
@@ -18,7 +19,7 @@ c_coeff = 10;  % Coefficient for matrix C (10)
 C = c_coeff * eye(2);  % C = c_coeff * I
 
 % Learning rates (diagonal elements of Gamma matrix)
-gamma = ones(6,1) .* [5; 2; 5; 2; 2; 2;];
+gamma = ones(6,1) .* [15; 2; 20; 2; 2; 2;];
 Gamma = diag(gamma);
 
 %% Constraint Parameters
