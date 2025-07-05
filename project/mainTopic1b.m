@@ -23,11 +23,11 @@ omega_freq = [0.7, 1.2];  % Frequencies for bias components
 lambda = 2.0;  % Filter pole (must be > 0 for stability)
 
 % Learning rate matrix (diagonal)
-gamma_vals = [1; 1; 1; 1; 1; 1];  % Individual learning rates
+gamma_vals = [1; 10; 1; 1; 1; 1];  % Individual learning rates
 Gamma = diag(gamma_vals);
 
 % σ-modification parameters
-M = 3.4;        % Bound for parameter estimates
+M = 3.5;        % Bound for parameter estimates
 sigma = 1;   % σ-modification coefficient
 
 %% Initial Conditions
@@ -36,7 +36,7 @@ x0 = [0; 0];
 
 % Initial parameter estimates (feasible and within bounds)
 % [a11+λ, a12, a21, a22+λ, b1, b2]
-theta_lambda0 = [-0.5; 3; 0; 0; 5; 5];
+theta_lambda0 = [-0.5; -1; -1; 2; 5; 5];
 
 % Initialize filter states (all start at zero)
 filter_states0 = zeros(3, 1);  % 3 filters (for x1, x2 and u)
