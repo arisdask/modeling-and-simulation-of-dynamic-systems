@@ -1,6 +1,5 @@
 %% Modeling and Simulation of Dynamic Systems - Project - Topic 1a
 % Author: Aristeidis Daskalopoulos - AEM:10640
-%
 % Implementation of mixed structure parameter estimation with constraints
 
 clear; clc; close all;
@@ -19,7 +18,7 @@ c_coeff = 10;  % Coefficient for matrix C (10)
 C = c_coeff * eye(2);  % C = c_coeff * I
 
 % Learning rates (diagonal elements of Gamma matrix)
-gamma = ones(6,1) .* [15; 2; 20; 2; 2; 2;];
+gamma = ones(6,1) .* [15; 5; 20; 2; 2; 2;];
 Gamma = diag(gamma);
 
 %% Constraint Parameters
@@ -187,15 +186,15 @@ grid on;
 
 %% Display final estimates
 fprintf('Final Parameter Estimates:\n');
-fprintf('a11: %.4f (True: %.4f)\n', a11_est(end), A_true(1,1));
-fprintf('a12: %.4f (True: %.4f)\n', a12_est(end), A_true(1,2));
-fprintf('a21: %.4f (True: %.4f)\n', a21_est(end), A_true(2,1));
-fprintf('a22: %.4f (True: %.4f)\n', a22_est(end), A_true(2,2));
-fprintf('b1:  %.4f (True: %.4f)\n', b1_est(end), B_true(1));
-fprintf('b2:  %.4f (True: %.4f)\n', b2_est(end), B_true(2));
-
-%% Check constraint satisfaction
-% fprintf('\nConstraint Satisfaction:\n');
-% fprintf('a11 ∈ [-3, -1]: %.4f ∈ [%.1f, %.1f] - %s\n', a11_est(end), -3, -1, ...
-%     (a11_est(end) >= -3 && a11_est(end) <= -1) ? 'OK' : 'VIOLATED');
-% fprintf('b2 ≥ 1: %.4f ≥ 1 - %s\n', b2_est(end), (b2_est(end) >= 1) ? 'OK' : 'VIOLATED');
+fprintf('a11: %.4f (True: %.4f - Error: %.2f%%)\n', ...
+    a11_est(end), A_true(1,1), 100 * abs(a11_est(end) - A_true(1,1))/A_true(1,1));
+fprintf('a12: %.4f (True: %.4f - Error: %.2f%%)\n', ...
+    a12_est(end), A_true(1,2), 100 * abs(a12_est(end) - A_true(1,2))/A_true(1,2));
+fprintf('a21: %.4f (True: %.4f - Error: %.2f%%)\n', ...
+    a21_est(end), A_true(2,1), 100 * abs(a21_est(end) - A_true(2,1))/A_true(2,1));
+fprintf('a22: %.4f (True: %.4f - Error: %.2f%%)\n', ...
+    a22_est(end), A_true(2,2), 100 * abs(a22_est(end) - A_true(2,2))/A_true(2,2));
+fprintf('b1:  %.4f (True: %.4f - Error: %.2f%%)\n', ...
+    b1_est(end), B_true(1), 100 * abs(b1_est(end) - B_true(1)));
+fprintf('b2:  %.4f (True: %.4f - Error: %.2f%%)\n\n', ...
+    b2_est(end), B_true(2), 100 * abs(b2_est(end) - B_true(2))/B_true(2));
