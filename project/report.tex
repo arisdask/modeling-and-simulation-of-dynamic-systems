@@ -536,7 +536,7 @@ A_{\text{hat}} x(t) + B_{\text{hat}} u(t) + C (x(t) - \hat{x}(t)) \\
 \end{equation}
 Στην πράξη, για το ΓΧΑ σύστημα 2ης τάξης που μελετάμε, μας ενδιαφέρει να εκτιμήσουμε και τις $6$ \textit{ανεξάρτητες} παραμέτρους του.
 Γι' αυτόν τον λόγο, επιλέγουμε να χρησιμοποιήσουμε συνολικά τρεις συχνότητες.
-Με αυτόν τον τρόπο εξασφαλίζουμε ότι το σήμα εισόδου έχει αρκετές συχνότητες ώστε να έχουμε την δυνατότητα να εκτιμήσουμε με αρκετή ακρίβεια καθεμία από τις $6$ παραμέτρους του (με σφάλμα εκτίμηση κάθε παραμέτρου να μπορεί ιδανικά να τείνει στο μηδέν). 
+Με αυτόν τον τρόπο εξασφαλίζουμε ότι το σήμα εισόδου έχει αρκετές συχνότητες ώστε να έχουμε την δυνατότητα να εκτιμήσουμε με αρκετή ακρίβεια καθεμία από τις $6$ παραμέτρους του (με σφάλμα εκτίμησης κάθε παραμέτρου να μπορεί ιδανικά να τείνει στο μηδέν). 
 
 
 \begin{center}
@@ -921,20 +921,290 @@ $$
 Τα $\omega_{f1}, \omega_{f2}$ ορίζονται στο script \textit{mainTopic1b.m}, στην μεταβλητή {\small\texttt{omega\_freq}}, και είναι ίσα με $0.7$ και $1.2$ αντίστοιχα, για όλες τις περιπτώσεις $\bar\omega$.
 Στο αρχείο \textit{normOmega.m} υπολογίζουμε και κάνουμε plot την νόρμα του $\omega$ για να δούμε το πως αυτή κυμαίνεται και αν ικανοποιεί τους περιορισμούς. 
 
-\begin{examplebox}{Σημείωση}
-    Από το αρχείο \textit{normOmega.m} είναι φανερό ότι με τον τύπο που δώσαμε για την $\omega(t)$, 
+\begin{examplebox}{Σημειώσεις}
+\begin{enumerate}
+    \item Από το αρχείο \textit{normOmega.m} είναι φανερό ότι με τον τύπο που δώσαμε για την $\omega(t)$, 
     το $\bar\omega$ αποτελεί το κατώτερο άνω φράγμα για την συνάρτηση της νόρμας $||\omega(t)||$\textemdash
-    ακομή και αν δεν κάνουμε έλεγχο για πλάτος μεγαλύτερο του $\bar\omega$ και scale. 
+    ακόμη και αν δεν κάνουμε έλεγχο για πλάτος μεγαλύτερο του $\bar\omega$ και scale. 
     Επομένως, ο έλεγχος αυτός είναι καθαρά προαιρετικός για την επιλεγμένη μοντελοποίηση που παραθέσαμε. 
-\end{examplebox}
 
-\newpage
+    \item Θα μπορούσαμε να μοντελοποιήσουμε το σφάλμα πόλωσης $\omega(t)$, ως μια στοχαστική διαδικασία. 
+    Σε αυτήν την περίπτωση θα μπορούσαμε να είχαμε για παράδειγμα το πλάτος $||\omega(t)||$ να είναι λευκός θόρυβος, 
+    με έλεγχο για την τήρηση του περιορισμού  $||\omega(t)|| \le \bar\omega$.
+    Ωστόσο, επιλέξαμε να διατηρήσουμε τη συνάρτηση πλήρως ντετερμινιστική, 
+    ώστε να αποφύγουμε την ανάγκη εκτέλεσης στατιστικού ελέγχου επί των αποτελεσμάτων 
+    και να διασφαλίσουμε την αναπαραγωγιμότητα των ίδιων γραφικών παραστάσεων και τιμών σε κάθε εκτέλεση του κώδικα.
+\end{enumerate}
+\end{examplebox}
 
 
 \subsubsection{Αποτελέσματα MATLAB και Συμπεράσματα}
-TODO: \\
-- Βάλε πλοτς και πες συμπεράσματα
-- πως επηρεάζει το μπαρ-ω την σύγκληση (την κάνει χειρότερη!!)\\
+
+Εκτελώντας το script του αρχείου \textit{mainTopic1b.m} για {\small \texttt{omega\_bar = 0.3}}, προκύπτουν τα παρακάτω αποτελέσματα. 
+Για την είσοδο $u(t)$ χρησιμοποιήθηκε η ίδια με αυτήν που αναφέρθηκε στο Ερώτημα 1Α.
+
+Από τις γραφικές παραστάσεις του Σχήματος~\ref{fig:x_err_o1}, παρατηρούμε ότι το σφάλμα του συστήματος εκτίμησης, 
+αν και αρχικά παρουσιάζει μεγαλύτερη απόκλιση από την πραγματική συμπεριφορά του συστήματος, 
+μειώνεται σταδιακά με την πάροδο του χρόνου και τελικά συγκλίνει κοντά στο μηδέν. 
+Αξιοσημείωτο είναι επίσης ότι η εκτίμηση του $x_1$ είναι εμφανώς λιγότερο ακριβής σε σύγκριση με εκείνη του $x_2$, 
+η οποία δείχνει να προσαρμόζεται καλύτερα στην πραγματική τιμή με την πάροδο του χρόνου. 
+Αυτό οφείλεται στις επιλογές των παραμέτρων που έχουμε κάνει ($\lambda$, $\Gamma$, $\sigma$, κλπ...) αλλά και στην επιλογή της εισόδου μας. 
+
+
+\begin{figure}[ht!]
+    \centering
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=0.8\linewidth]{plots/plot6_1_x1_o1.png}
+        % \caption{Image 1}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=0.8\linewidth]{plots/plot6_2_x2_o1.png}
+        % \caption{Image 2}
+    \end{minipage}
+    
+    \vspace{1em} % Space between rows
+    
+    \centering
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=0.8\linewidth]{plots/plot6_3_e1_o1.png}
+        % \caption{Image 1}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=0.8\linewidth]{plots/plot6_4_e2_o1.png}
+        % \caption{Image 1}
+    \end{minipage}
+    
+    \caption{}
+    \label{fig:x_err_o1}
+\end{figure}
+
+Όσον αφορά τις γραφικές παραστάσεις των Σχημάτων~\ref{fig:A_est_o1} και~\ref{fig:B_est_o1}, 
+παρατηρείται ότι με τον σχεδιασμένο αλγόριθμο αποφεύγεται η παραμετρική ολίσθηση και ότι 
+οι εκτιμήσεις των παραμέτρων τείνουν να συγκλίνουν στις πραγματικές τους τιμές.
+
+
+
+\begin{figure}[ht!]
+    \centering
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=0.8\linewidth]{plots/plot6_6_α11o1.png}
+        % \caption{Image 1}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=0.8\linewidth]{plots/plot6_7_α12o1.png}
+        % \caption{Image 2}
+    \end{minipage}
+    
+    \vspace{1em} % Space between rows
+    
+    \centering
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=0.8\linewidth]{plots/plot6_8_α21o1.png}
+        % \caption{Image 1}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=0.8\linewidth]{plots/plot6_9_α22_o1.png}
+        % \caption{Image 1}
+    \end{minipage}
+    
+    \caption{}
+    \label{fig:A_est_o1}
+\end{figure}
+
+
+
+\begin{figure}[ht!]
+    \centering
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=0.55\linewidth]{plots/plot6_10_b1_o1.png}
+        % \caption{Image 1}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=0.55\linewidth]{plots/plot6_11_b2_o1.png}
+        % \caption{Image 2}
+    \end{minipage}
+    
+    \vspace{1em} % Space between rows
+    
+    \centering
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=0.65\linewidth]{plots/plot6_12_theta_o1.png}
+        % \caption{Image 1}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=0.65\linewidth]{plots/plot6_13_logs_o1.png}
+        % \caption{Image 2}
+    \end{minipage}
+    
+    \caption{}
+    \label{fig:B_est_o1}
+\end{figure}
+
+Τέλος, στο Σχήμα~\ref{fig:B_est_o1}, στην κάτω σειρά, απεικονίζεται αριστερά το μέτρο του διανύσματος $\hat\theta_\lambda^*$. 
+Από αυτή την πληροφορία μπορούμε να κατανοήσουμε ποιος κλάδος της διακοπτικής $\sigma$-τροποποίησης (συνεχής εκδοχή) ενεργοποιείται για τον υπολογισμό του νέου $\dot{\hat\theta}_\lambda^*$. 
+Είναι σαφές ότι για μεγάλες τιμές του μέτρου $||\hat\theta_\lambda^*||$ παρατηρούνται και υψηλοί ρυθμοί μεταβολής του, 
+καθώς η τιμή της $\bar\sigma$ είναι μη μηδενική όταν $||\hat\theta_\lambda^*|| > M$ και φτάνει τη μέγιστη τιμή της για $||\hat\theta_\lambda^*|| > 2M$.
+
+Στην κάτω δεξιά περιοχή του Σχήματος~\ref{fig:B_est_o1} παρουσιάζονται τα σχετικά σφάλματα των τελικών εκτιμήσεων, 
+τα οποία είναι ιδιαίτερα μικρά και συγκρίσιμα ως τάξη μεγέθους με αυτά του Ερωτήματος 1Α.
+
+\vspace{3pt}
+\hrule
+\vspace{3pt}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%55  omega 2  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Εκτελώντας εκ νέου το script του αρχείου \textit{mainTopic1b.m}, αυτή τη φορά τροποποιώντας \textit{μόνο} την τιμή της παραμέτρου 
+{\small \texttt{omega\_bar}} σε 1, προκύπτουν τα εξής νέα αποτελέσματα.
+
+Από τις γραφικές παραστάσεις του Σχήματος~\ref{fig:x_err_o2}, παρατηρείται ότι το σφάλμα του συστήματος εκτίμησης δεν μειώνεται πλέον τόσο αποτελεσματικά όσο στην προηγούμενη περίπτωση με τη μικρότερη τιμή του $\bar\omega$. 
+Το σύστημα αναγνώρισης φαίνεται να απαιτεί περισσότερο χρόνο για να προσαρμοστεί "κοντά" στις πραγματικές τιμές, χωρίς ωστόσο να επιτυγχάνει το ίδιο επίπεδο ακρίβειας. 
+Παρότι το σφάλμα μειώνεται σταδιακά, δεν φαίνεται να σταθεροποιείται στο μηδέν\footnote{
+Παρόλα αυτά,  όπως προκύπτει από τη σύγκριση των γραφικών παραστάσεων για τις διαφορετικές τιμές του $\bar\omega$, 
+το σφάλμα φράσσεται από τιμή που εξαρτάται από το $\bar\omega$.
+}.
+
+Επιπλέον, η εκτίμηση του $x_1$ παραμένει λιγότερο ακριβής σε σχέση με εκείνη του $x_2$, η οποία, 
+παρά την αύξηση του πλάτους του σφάλματος πόλωσης, καταφέρνει τελικά να προσεγγίσει καλύτερα την πραγματική συμπεριφορά. 
+Το γεγονός αυτό υποδεικνύει ότι ο αλγόριθμος παρουσιάζει ορισμένο βαθμό ανοχής σε μεταβολές της τιμής του $\bar\omega$.
+
+
+\begin{figure}[ht!]
+    \centering
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=0.8\linewidth]{plots/plot7_1_x1_o2.png}
+        % \caption{Image 1}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=0.8\linewidth]{plots/plot7_2_x2_o2.png}
+        % \caption{Image 2}
+    \end{minipage}
+    
+    \vspace{1em} % Space between rows
+    
+    \centering
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=0.8\linewidth]{plots/plot7_3_e1_o2.png}
+        % \caption{Image 1}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=0.8\linewidth]{plots/plot7_4_e2_o2.png}
+        % \caption{Image 1}
+    \end{minipage}
+    
+    \caption{}
+    \label{fig:x_err_o2}
+\end{figure}
+
+Αναφορικά με τις παραστάσεις των Σχημάτων~\ref{fig:A_est_o2} και~\ref{fig:B_est_o2}, 
+παρατηρείται ότι ο αλγόριθμος συνεχίζει να αποτρέπει την παραμετρική ολίσθηση, 
+με τις εκτιμήσεις των παραμέτρων να περιορίζονται σε περιοχές κοντά στις πραγματικές τιμές. 
+Παρ' όλα αυτά, τα αποτελέσματα είναι χειρότερης ακρίβειας σε σύγκριση με την προηγούμενη εκτέλεση.
+
+Για τη βελτίωση της απόδοσης του αλγορίθμου υπό υψηλότερες τιμές του $\bar\omega$, 
+θα μπορούσε να εξεταστεί η τροποποίηση συγκεκριμένων παραμέτρων, 
+όπως για παράδειγμα οι τιμές του διαγώνιου πίνακα $\Gamma$ (learning rate). 
+Μέσω fine tuning, είναι πιθανό να επιτυγχάνονταν εκτιμήσεις παραμέτρων πιο κοντά στις επιθυμητές, 
+ακόμη κι αν η προσέγγιση του πραγματικού μη γραμμικού συστήματος παρέμενε περιορισμένη λόγω του αυξημένου σφάλματος πόλωσης $\bar\omega$.
+
+Η απόφαση να μην πραγματοποιηθεί τέτοια ρύθμιση έγινε,  
+προκειμένου να μελετηθεί απομονωμένα η επίδραση της μεταβολής του $\bar\omega$, 
+χωρίς την ταυτόχρονη αλλαγή άλλων παραμέτρων του συστήματος.
+
+
+\begin{figure}[ht!]
+    \centering
+    \begin{minipage}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.7\linewidth]{plots/plot7_6_α11o2.png}
+        % \caption{Image 1}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.7\linewidth]{plots/plot7_7_α12o2.png}
+        % \caption{Image 2}
+    \end{minipage}
+    
+    \vspace{1em} % Space between rows
+    
+    \centering
+    \begin{minipage}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.7\linewidth]{plots/plot7_8_α21o2.png}
+        % \caption{Image 1}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.7\linewidth]{plots/plot7_9_α22_o2.png}
+        % \caption{Image 1}
+    \end{minipage}
+    
+    \caption{}
+    \label{fig:A_est_o2}
+\end{figure}
+
+
+\begin{figure}[ht!]
+    \centering
+    \begin{minipage}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.45\linewidth]{plots/plot7_10_b1_o2.png}
+        % \caption{Image 1}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.45\linewidth]{plots/plot7_11_b2_o2.png}
+        % \caption{Image 2}
+    \end{minipage}
+    
+    \vspace{1em} % Space between rows
+    
+    \centering
+    \begin{minipage}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.55\linewidth]{plots/plot7_12_theta_o2.png}
+        % \caption{Image 1}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.65\linewidth]{plots/plot7_13_logs_o2.png}
+        % \caption{Image 2}
+    \end{minipage}
+    
+    \caption{}
+    \label{fig:B_est_o2}
+\end{figure}
+
+
 
 
 
