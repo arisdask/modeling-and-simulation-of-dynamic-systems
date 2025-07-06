@@ -1,371 +1,337 @@
-%% Nonlinear System Model Selection and Evaluation
-% This code implements model selection and evaluation for approximating
-% an unknown nonlinear dynamic system using different basis functions
+%% Modeling and Simulation of Dynamic Systems - Project - Topic 2
+% Author: Implementation of Model Selection for Nonlinear System Identification
+% Nonlinear system: dx/dt = -x³ + θ₁tanh(x) + θ₂/(1+x²) + u
 
-clear all; close all; clc;
+clear; clc; close all;
 
-%% 1. TRUE SYSTEM PARAMETERS AND SETUP
-% Choose parameters within the specified range [0.5, 2]
-theta1_true = 1.2;  % True parameter 1
-theta2_true = 0.8;  % True parameter 2
-theta_true = [theta1_true; theta2_true];
+%% 1. Define the True System Parameters
+theta1_true = 1.5;  % Parameter θ₁
+theta2_true = 2.0;  % Parameter θ₂
 
-% Time vector
-t_span = [0 10];  % 10 seconds simulation
-dt = 0.01;
-t = 0:dt:10;
+% True system function
+f_true = @(x, u) -x^3 + theta1_true * tanh(x) + theta2_true / (1 + x^2) + u;
 
-% Input signal u(t) - choosing a rich excitation signal
-u_func = @(t) 0.5*sin(2*pi*0.1*t) + 0.3*sin(2*pi*0.3*t) + 0.2*sin(2*pi*0.7*t);
+%% 2. Design Input Signal u(t)
+% Rich input signal - sum of sinusoids to excite all dynamics
+input_signal = @(t) sin(0.5*t) + 0.8*sin(1.2*t) + 0.6*sin(2.3*t) + 0.4*sin(3.7*t);
 
-% True system dynamics
-f_true = @(x, u, theta) -x^3 + theta(1)*tanh(x) + theta(2)/(1+x^2) + u;
+%% 3. Simulate True System
+T_final = 30;  % Total simulation time
+dt = 0.01;     % Time step
+t = 0:dt:T_final;
+N = length(t);
 
-% Generate true system data
-x0 = 0.1;  % Initial condition
-[t_true, x_true] = ode45(@(t,x) f_true(x, u_func(t), theta_true), t_span, x0);
+% Generate input data
+u_data = zeros(N, 1);
+for i = 1:N
+    u_data(i) = input_signal(t(i));
+end
 
-% Add measurement noise to make it more realistic
-noise_level = 0.01;
-x_measured = x_true + noise_level * randn(size(x_true));
+% Simulate true system using ODE solver
+x0_true = 0;  % Initial condition
+[t_sim, x_true] = ode45(@(t, x) f_true(x, input_signal(t)), [0 T_final], x0_true);
 
-% Calculate input values at time points
-u_values = u_func(t_true);
+% Interpolate to get uniform sampling
+x_true_uniform = interp1(t_sim, x_true, t);
 
-%% 2. DEFINE CANDIDATE MODEL STRUCTURES
-% Each model structure uses different basis functions to approximate f(x,u,θ)
+%% 4. Filter Design Parameters
+lambda = 2.0;  % Filter pole for stability
 
-% Model 1: Polynomial basis
-% f_model1 = θ1*x + θ2*x^2 + θ3*x^3 + u
-phi1 = @(x, u) [x, x.^2, x.^3, ones(size(x))];  % Last term for u coefficient
+%% 5. Model Structure Definitions
 
-% Model 2: Polynomial + Trigonometric basis
-% f_model2 = θ1*x + θ2*x^2 + θ3*sin(x) + θ4*cos(x) + u
-phi2 = @(x, u) [x, x.^2, sin(x), cos(x), ones(size(x))];
+% Model 1: Simple Polynomial
+model1_basis = @(x, u) [1; x; x^2; x^3; u];  % 5 parameters
 
-% Model 3: Polynomial + Hyperbolic basis (closer to true system)
-% f_model3 = θ1*x + θ2*x^3 + θ3*tanh(x) + θ4/(1+x^2) + u
-phi3 = @(x, u) [x, x.^3, tanh(x), 1./(1+x.^2), ones(size(x))];
+% Model 2: Polynomial + Tanh
+model2_basis = @(x, u) [1; x; x^3; tanh(x); u];  % 5 parameters
 
-% Model 4: Radial Basis Functions (Gaussian)
-% f_model4 = θ1*exp(-(x-c1)^2) + θ2*exp(-(x-c2)^2) + θ3*exp(-(x-c3)^2) + u
-c1 = -1; c2 = 0; c3 = 1;  % Centers for RBF
-phi4 = @(x, u) [exp(-(x-c1).^2), exp(-(x-c2).^2), exp(-(x-c3).^2), ones(size(x))];
+% Model 3: Gaussian RBFs
+rbf_centers = [-2, -1, 0, 1, 2];  % RBF centers
+rbf_sigma = 1.0;  % RBF width
+model3_basis = @(x, u) [exp(-(x - rbf_centers(1))^2/(2*rbf_sigma^2)); 
+                        exp(-(x - rbf_centers(2))^2/(2*rbf_sigma^2));
+                        exp(-(x - rbf_centers(3))^2/(2*rbf_sigma^2));
+                        exp(-(x - rbf_centers(4))^2/(2*rbf_sigma^2));
+                        exp(-(x - rbf_centers(5))^2/(2*rbf_sigma^2));
+                        u];  % 6 parameters
 
-% Model 5: Extended polynomial basis
-% f_model5 = θ1*x + θ2*x^2 + θ3*x^3 + θ4*x^4 + θ5*x^5 + u
-phi5 = @(x, u) [x, x.^2, x.^3, x.^4, x.^5, ones(size(x))];
-
-% Store all models
-models = {phi1, phi2, phi3, phi4, phi5};
-model_names = {'Polynomial', 'Poly+Trig', 'Poly+Hyperbolic', 'RBF', 'Extended Poly'};
+%% 6. Cross-Validation Setup
+num_folds = 4;
+fold_size = floor(N / num_folds);
+models = {model1_basis, model2_basis, model3_basis};
+model_names = {'Polynomial', 'Polynomial + Tanh', 'Gaussian RBFs'};
 num_models = length(models);
 
-%% 3. PARAMETER ESTIMATION METHODS
-% We'll use both batch least squares and recursive least squares
+% Initialize results storage
+cv_mse = zeros(num_models, num_folds);
+cv_params = cell(num_models, num_folds);
 
-%% 3.1 Batch Least Squares Estimation
-fprintf('=== BATCH LEAST SQUARES ESTIMATION ===\n');
+%% 7. Cross-Validation Loop
+fprintf('Starting Cross-Validation...\n');
 
-% Calculate derivatives using finite differences
-x_dot = gradient(x_measured, dt);
-
-model_params = cell(num_models, 1);
-model_errors = zeros(num_models, 1);
-model_predictions = cell(num_models, 1);
-
-for i = 1:num_models
-    % Build regression matrix
-    Phi = models{i}(x_measured, u_values);
+for model_idx = 1:num_models
+    fprintf('Evaluating %s model...\n', model_names{model_idx});
     
-    % Least squares estimation: θ = (Φ^T Φ)^(-1) Φ^T x_dot
-    theta_est = pinv(Phi) * x_dot;
-    model_params{i} = theta_est;
-    
-    % Calculate model prediction
-    x_dot_pred = Phi * theta_est;
-    model_predictions{i} = x_dot_pred;
-    
-    % Calculate mean squared error
-    mse = mean((x_dot - x_dot_pred).^2);
-    model_errors(i) = mse;
-    
-    fprintf('Model %d (%s): MSE = %.6f\n', i, model_names{i}, mse);
-    fprintf('  Parameters: [%.4f', theta_est(1));
-    for j = 2:length(theta_est)
-        fprintf(', %.4f', theta_est(j));
-    end
-    fprintf(']\n');
-end
-
-%% 3.2 Recursive Least Squares (RLS) Implementation
-fprintf('\n=== RECURSIVE LEAST SQUARES ESTIMATION ===\n');
-
-% Initialize RLS parameters
-forgetting_factor = 0.99;  % Forgetting factor for RLS
-rls_results = cell(num_models, 1);
-
-for i = 1:num_models
-    % Get dimension of parameter vector
-    phi_sample = models{i}(x_measured(1), u_values(1));
-    n_params = length(phi_sample);
-    
-    % Initialize RLS
-    theta_rls = zeros(n_params, length(t_true));
-    P = 1000 * eye(n_params);  % Initial covariance matrix
-    theta_curr = zeros(n_params, 1);  % Initial parameter estimate
-    
-    % RLS recursion
-    for k = 2:length(t_true)
-        % Get regression vector
-        phi_k = models{i}(x_measured(k), u_values(k))';
+    for fold = 1:num_folds
+        % Define test and training indices
+        test_start = (fold-1) * fold_size + 1;
+        test_end = min(fold * fold_size, N);
+        test_indices = test_start:test_end;
         
-        % Update covariance matrix
-        P = (P - (P * (phi_k * phi_k') * P) / (forgetting_factor + phi_k' * P * phi_k)) / forgetting_factor;
+        train_indices = setdiff(1:N, test_indices);
         
-        % Update parameter estimate
-        K = P * phi_k / (forgetting_factor + phi_k' * P * phi_k);  % Kalman gain
-        theta_curr = theta_curr + K * (x_dot(k) - phi_k' * theta_curr);
+        % Training data
+        t_train = t(train_indices);
+        x_train = x_true_uniform(train_indices);
+        u_train = u_data(train_indices);
         
-        theta_rls(:, k) = theta_curr;
-    end
-    
-    rls_results{i} = theta_rls;
-    
-    % Final RLS error
-    Phi = models{i}(x_measured, u_values);
-    x_dot_pred_rls = Phi * theta_curr;
-    mse_rls = mean((x_dot - x_dot_pred_rls).^2);
-    
-    fprintf('Model %d (%s) RLS: Final MSE = %.6f\n', i, model_names{i}, mse_rls);
-end
-
-%% 4. MODEL VALIDATION AND SIMULATION
-fprintf('\n=== MODEL VALIDATION THROUGH SIMULATION ===\n');
-
-% Generate validation data with different input
-u_val_func = @(t) 0.8*sin(2*pi*0.2*t) + 0.4*cos(2*pi*0.5*t);
-[t_val, x_val_true] = ode45(@(t,x) f_true(x, u_val_func(t), theta_true), t_span, x0);
-
-simulation_errors = zeros(num_models, 1);
-
-for i = 1:num_models
-    % Create model ODE function
-    theta_model = model_params{i};
-    
-    % Model dynamics: x_dot = phi(x,u) * theta
-    model_ode = @(t, x) models{i}(x, u_val_func(t)) * theta_model;
-    
-    % Simulate model
-    [t_sim, x_sim] = ode45(model_ode, t_span, x0);
-    
-    % Interpolate to compare at same time points
-    x_sim_interp = interp1(t_sim, x_sim, t_val, 'linear', 'extrap');
-    
-    % Calculate simulation error
-    sim_error = sqrt(mean((x_val_true - x_sim_interp).^2));
-    simulation_errors(i) = sim_error;
-    
-    fprintf('Model %d (%s): Simulation RMSE = %.6f\n', i, model_names{i}, sim_error);
-end
-
-%% 5. INFORMATION CRITERIA FOR MODEL SELECTION
-fprintf('\n=== INFORMATION CRITERIA ===\n');
-
-n_data = length(x_measured);
-aic_values = zeros(num_models, 1);
-bic_values = zeros(num_models, 1);
-
-for i = 1:num_models
-    n_params = length(model_params{i});
-    mse = model_errors(i);
-    
-    % AIC = n*log(MSE) + 2*k
-    aic_values(i) = n_data * log(mse) + 2 * n_params;
-    
-    % BIC = n*log(MSE) + k*log(n)
-    bic_values(i) = n_data * log(mse) + n_params * log(n_data);
-    
-    fprintf('Model %d (%s): AIC = %.2f, BIC = %.2f\n', i, model_names{i}, aic_values(i), bic_values(i));
-end
-
-%% 6. CROSS-VALIDATION
-fprintf('\n=== CROSS-VALIDATION ===\n');
-
-k_fold = 5;  % 5-fold cross-validation
-cv_errors = zeros(num_models, k_fold);
-
-% Divide data into k folds
-fold_size = floor(length(x_measured) / k_fold);
-
-for fold = 1:k_fold
-    % Define test indices
-    test_start = (fold-1) * fold_size + 1;
-    test_end = min(fold * fold_size, length(x_measured));
-    test_idx = test_start:test_end;
-    
-    % Training indices (everything except test)
-    train_idx = setdiff(1:length(x_measured), test_idx);
-    
-    % Training data
-    x_train = x_measured(train_idx);
-    u_train = u_values(train_idx);
-    x_dot_train = x_dot(train_idx);
-    
-    % Test data
-    x_test = x_measured(test_idx);
-    u_test = u_values(test_idx);
-    x_dot_test = x_dot(test_idx);
-    
-    % Train and test each model
-    for i = 1:num_models
-        % Train on training data
-        Phi_train = models{i}(x_train, u_train);
-        theta_fold = pinv(Phi_train) * x_dot_train;
+        % Test data
+        t_test = t(test_indices);
+        x_test = x_true_uniform(test_indices);
+        u_test = u_data(test_indices);
         
-        % Test on test data
-        Phi_test = models{i}(x_test, u_test);
-        x_dot_pred_test = Phi_test * theta_fold;
+        % Parameter estimation for current model
+        [theta_est, x_hat_train] = estimateParameters(t_train, x_train, u_train, ...
+                                                     models{model_idx}, lambda);
         
-        % Calculate test error
-        cv_errors(i, fold) = mean((x_dot_test - x_dot_pred_test).^2);
+        % Evaluate on test set
+        x_hat_test = evaluateModel(t_test, x_test, u_test, theta_est, ...
+                                  models{model_idx}, lambda);
+        
+        % Compute MSE for this fold
+        cv_mse(model_idx, fold) = mean((x_test - x_hat_test).^2);
+        cv_params{model_idx, fold} = theta_est;
     end
 end
 
-cv_mean_errors = mean(cv_errors, 2);
-cv_std_errors = std(cv_errors, 0, 2);
+%% 8. Compute Final Metrics
+mean_cv_mse = mean(cv_mse, 2);
+std_cv_mse = std(cv_mse, 0, 2);
 
-for i = 1:num_models
-    fprintf('Model %d (%s): CV Error = %.6f ± %.6f\n', i, model_names{i}, cv_mean_errors(i), cv_std_errors(i));
+% Train on full dataset for final evaluation
+fprintf('\nTraining final models on full dataset...\n');
+final_params = cell(num_models, 1);
+final_x_hat = zeros(N, num_models);
+final_mse = zeros(num_models, 1);
+aic_scores = zeros(num_models, 1);
+
+for model_idx = 1:num_models
+    [theta_final, x_hat_final] = estimateParameters(t, x_true_uniform, u_data, ...
+                                                   models{model_idx}, lambda);
+    final_params{model_idx} = theta_final;
+    final_x_hat(:, model_idx) = x_hat_final;
+    final_mse(model_idx) = mean((x_true_uniform - x_hat_final).^2);
+    
+    % Compute AIC
+    num_params = length(theta_final);
+    aic_scores(model_idx) = 2 * num_params + N * log(final_mse(model_idx));
 end
 
-%% 7. VISUALIZATION
-% Create comprehensive plots
+%% 9. Display Results
+fprintf('\n=== MODEL EVALUATION RESULTS ===\n');
+fprintf('%-20s | %-12s | %-12s | %-12s | %-12s\n', ...
+        'Model', 'CV MSE', 'CV Std', 'Final MSE', 'AIC');
+fprintf('%-20s-|%-12s-|%-12s-|%-12s-|%-12s\n', ...
+        repmat('-', 1, 20), repmat('-', 1, 12), repmat('-', 1, 12), ...
+        repmat('-', 1, 12), repmat('-', 1, 12));
 
-figure('Position', [100, 100, 1200, 800]);
+for i = 1:num_models
+    fprintf('%-20s | %-12.6f | %-12.6f | %-12.6f | %-12.2f\n', ...
+            model_names{i}, mean_cv_mse(i), std_cv_mse(i), final_mse(i), aic_scores(i));
+end
 
-% Plot 1: True system response
-subplot(2, 3, 1);
-plot(t_true, x_true, 'b-', 'LineWidth', 2);
+% Find best model
+[~, best_model_idx] = min(mean_cv_mse);
+fprintf('\nBest model based on CV MSE: %s\n', model_names{best_model_idx});
+
+%% 10. Plotting Results
+% Plot 1: True vs Estimated trajectories
+figure('Name', 'System Trajectories Comparison', 'NumberTitle', 'off');
+subplot(2, 2, 1);
+plot(t, x_true_uniform, 'b-', 'LineWidth', 2);
 hold on;
-plot(t_true, x_measured, 'r.', 'MarkerSize', 4);
-xlabel('Time (s)');
+plot(t, final_x_hat(:, 1), 'r--', 'LineWidth', 1.5);
+plot(t, final_x_hat(:, 2), 'g--', 'LineWidth', 1.5);
+plot(t, final_x_hat(:, 3), 'm--', 'LineWidth', 1.5);
+title('System Output Comparison');
+xlabel('Time [s]');
 ylabel('x(t)');
-title('True System Response');
-legend('True x(t)', 'Measured x(t)', 'Location', 'best');
+legend('True', model_names{:}, 'Location', 'best');
 grid on;
 
-% Plot 2: Model comparison - derivative prediction
-subplot(2, 3, 2);
-plot(t_true, x_dot, 'b-', 'LineWidth', 2);
+% Plot 2: Input signal
+subplot(2, 2, 2);
+plot(t, u_data, 'k-', 'LineWidth', 1.5);
+title('Input Signal u(t)');
+xlabel('Time [s]');
+ylabel('u(t)');
+grid on;
+
+% Plot 3: Estimation errors
+subplot(2, 2, 3);
+for i = 1:num_models
+    plot(t, x_true_uniform - final_x_hat(:, i), 'LineWidth', 1.5);
+    hold on;
+end
+title('Estimation Errors');
+xlabel('Time [s]');
+ylabel('Error = x_{true} - x_{hat}');
+legend(model_names{:}, 'Location', 'best');
+grid on;
+
+% Plot 4: Cross-validation results
+subplot(2, 2, 4);
+bar(mean_cv_mse);
 hold on;
-colors = {'r--', 'g--', 'm--', 'c--', 'k--'};
-for i = 1:num_models
-    plot(t_true, model_predictions{i}, colors{i}, 'LineWidth', 1.5);
-end
-xlabel('Time (s)');
-ylabel('dx/dt');
-title('Derivative Prediction Comparison');
-legend(['True', model_names], 'Location', 'best');
-grid on;
-
-% Plot 3: Model errors comparison
-subplot(2, 3, 3);
-bar(1:num_models, model_errors);
+errorbar(1:num_models, mean_cv_mse, std_cv_mse, 'k.', 'LineWidth', 1.5);
+title('Cross-Validation MSE');
+xlabel('Model');
+ylabel('MSE');
 set(gca, 'XTickLabel', model_names);
-ylabel('Mean Squared Error');
-title('Model Fitting Errors');
-xtickangle(45);
 grid on;
 
-% Plot 4: Information criteria
-subplot(2, 3, 4);
-bar(1:num_models, [aic_values, bic_values]);
-set(gca, 'XTickLabel', model_names);
-ylabel('Information Criterion Value');
-title('AIC and BIC Comparison');
-legend('AIC', 'BIC', 'Location', 'best');
-xtickangle(45);
-grid on;
-
-% Plot 5: Cross-validation results
-subplot(2, 3, 5);
-errorbar(1:num_models, cv_mean_errors, cv_std_errors, 'bo-', 'LineWidth', 2);
-set(gca, 'XTickLabel', model_names);
-ylabel('CV Error');
-title('Cross-Validation Results');
-xtickangle(45);
-grid on;
-
-% Plot 6: Simulation validation
-subplot(2, 3, 6);
-bar(1:num_models, simulation_errors);
-set(gca, 'XTickLabel', model_names);
-ylabel('Simulation RMSE');
-title('Simulation Validation Errors');
-xtickangle(45);
-grid on;
-
-%% 8. RLS PARAMETER EVOLUTION
-figure('Position', [100, 100, 1200, 600]);
-
-% Plot parameter evolution for the best model (Model 3 - closest to true structure)
-best_model_idx = 3;  % Poly+Hyperbolic should be closest to true system
-
+% Plot 5: Model comparison metrics
+figure('Name', 'Model Comparison Metrics', 'NumberTitle', 'off');
 subplot(1, 2, 1);
-plot(t_true, rls_results{best_model_idx}');
-xlabel('Time (s)');
-ylabel('Parameter Value');
-title(sprintf('RLS Parameter Evolution - %s', model_names{best_model_idx}));
-legend('θ₁', 'θ₂', 'θ₃', 'θ₄', 'θ₅', 'Location', 'best');
-grid on;
-
-% Plot parameter convergence for all models
-subplot(1, 2, 2);
-final_params = zeros(num_models, 1);
-for i = 1:num_models
-    final_params(i) = norm(rls_results{i}(:, end) - rls_results{i}(:, end-100));
-end
-bar(1:num_models, final_params);
+bar([mean_cv_mse, final_mse]);
+title('MSE Comparison');
+xlabel('Model');
+ylabel('MSE');
+legend('CV MSE', 'Final MSE', 'Location', 'best');
 set(gca, 'XTickLabel', model_names);
-ylabel('Parameter Change (Last 100 samples)');
-title('Parameter Convergence');
-xtickangle(45);
 grid on;
 
-%% 9. SUMMARY AND RECOMMENDATIONS
-fprintf('\n=== SUMMARY AND RECOMMENDATIONS ===\n');
-fprintf('Model Selection Results:\n');
-fprintf('1. Best fitting model (MSE): %s (MSE = %.6f)\n', model_names{find(model_errors == min(model_errors))}, min(model_errors));
-fprintf('2. Best model (AIC): %s (AIC = %.2f)\n', model_names{find(aic_values == min(aic_values))}, min(aic_values));
-fprintf('3. Best model (BIC): %s (BIC = %.2f)\n', model_names{find(bic_values == min(bic_values))}, min(bic_values));
-fprintf('4. Best model (CV): %s (CV Error = %.6f)\n', model_names{find(cv_mean_errors == min(cv_mean_errors))}, min(cv_mean_errors));
-fprintf('5. Best model (Simulation): %s (RMSE = %.6f)\n', model_names{find(simulation_errors == min(simulation_errors))}, min(simulation_errors));
+subplot(1, 2, 2);
+bar(aic_scores);
+title('AIC Scores (Lower is Better)');
+xlabel('Model');
+ylabel('AIC');
+set(gca, 'XTickLabel', model_names);
+grid on;
 
-% Overall ranking
-overall_ranks = zeros(num_models, 1);
-[~, rank_mse] = sort(model_errors);
-[~, rank_aic] = sort(aic_values);
-[~, rank_bic] = sort(bic_values);
-[~, rank_cv] = sort(cv_mean_errors);
-[~, rank_sim] = sort(simulation_errors);
-
-for i = 1:num_models
-    overall_ranks(i) = find(rank_mse == i) + find(rank_aic == i) + find(rank_bic == i) + find(rank_cv == i) + find(rank_sim == i);
+%% 11. Parameter Analysis for Best Model
+fprintf('\n=== BEST MODEL PARAMETER ANALYSIS ===\n');
+fprintf('Best Model: %s\n', model_names{best_model_idx});
+fprintf('Final Parameters:\n');
+best_params = final_params{best_model_idx};
+for i = 1:length(best_params)
+    fprintf('θ_%d = %.4f\n', i, best_params(i));
 end
 
-[~, best_overall] = min(overall_ranks);
-fprintf('\nOverall best model: %s\n', model_names{best_overall});
-fprintf('True system parameters: θ₁ = %.3f, θ₂ = %.3f\n', theta1_true, theta2_true);
+% Additional analysis plots
+figure('Name', 'Best Model Analysis', 'NumberTitle', 'off');
+subplot(2, 1, 1);
+plot(t, x_true_uniform, 'b-', 'LineWidth', 2);
+hold on;
+plot(t, final_x_hat(:, best_model_idx), 'r--', 'LineWidth', 1.5);
+title(sprintf('Best Model (%s) vs True System', model_names{best_model_idx}));
+xlabel('Time [s]');
+ylabel('x(t)');
+legend('True System', 'Best Model', 'Location', 'best');
+grid on;
 
-if best_overall == 3  % If Poly+Hyperbolic is selected
-    fprintf('Estimated parameters: θ₁ = %.3f, θ₂ = %.3f\n', model_params{3}(3), model_params{3}(4));
-    fprintf('Parameter estimation error: Δθ₁ = %.3f, Δθ₂ = %.3f\n', ...
-        abs(model_params{3}(3) - theta1_true), abs(model_params{3}(4) - theta2_true));
+subplot(2, 1, 2);
+plot(t, x_true_uniform - final_x_hat(:, best_model_idx), 'g-', 'LineWidth', 1.5);
+title('Best Model Estimation Error');
+xlabel('Time [s]');
+ylabel('Error');
+grid on;
+
+% Calculate final error statistics
+final_error = x_true_uniform - final_x_hat(:, best_model_idx);
+rmse = sqrt(mean(final_error.^2));
+mae = mean(abs(final_error));
+max_error = max(abs(final_error));
+
+fprintf('\nFinal Error Statistics for Best Model:\n');
+fprintf('RMSE: %.6f\n', rmse);
+fprintf('MAE:  %.6f\n', mae);
+fprintf('Max Error: %.6f\n', max_error);
+
+%% Helper Functions
+
+function [theta_est, x_hat] = estimateParameters(t, x_data, u_data, basis_func, lambda)
+    % Real-time parameter estimation using gradient method
+    
+    N = length(t);
+    dt = t(2) - t(1);
+    
+    % Determine number of parameters from basis function
+    phi_test = basis_func(x_data(1), u_data(1));
+    num_params = length(phi_test);
+    
+    % Initialize parameters
+    theta = zeros(num_params, 1);
+    
+    % Learning rate
+    gamma = 0.1;
+    
+    % Filter states
+    x_filtered = 0;
+    u_filtered = 0;
+    
+    % Storage for results
+    theta_history = zeros(num_params, N);
+    x_hat = zeros(N, 1);
+    
+    for i = 1:N
+        % Update filter states (first-order filter: dx_f/dt = -λx_f + input)
+        if i == 1
+            x_filtered = x_data(i);
+            u_filtered = u_data(i);
+        else
+            x_filtered = x_filtered + dt * (-lambda * x_filtered + x_data(i));
+            u_filtered = u_filtered + dt * (-lambda * u_filtered + u_data(i));
+        end
+        
+        % Compute regressor vector
+        phi = basis_func(x_filtered, u_filtered);
+        
+        % Compute filtered output (using current filtered state)
+        y_filtered = x_filtered;
+        
+        % Compute model prediction
+        y_hat = phi' * theta;
+        
+        % Compute error
+        error = y_filtered - y_hat;
+        
+        % Update parameters using gradient descent
+        theta = theta + gamma * error * phi * dt;
+        
+        % Store results
+        theta_history(:, i) = theta;
+        x_hat(i) = y_hat;
+    end
+    
+    theta_est = theta;
 end
 
-fprintf('\nThis analysis demonstrates the importance of:\n');
-fprintf('1. Using multiple evaluation criteria\n');
-fprintf('2. Validating models through simulation\n');
-fprintf('3. Considering model complexity vs. accuracy trade-offs\n');
-fprintf('4. Using proper cross-validation techniques\n');
+function x_hat = evaluateModel(t, x_data, u_data, theta, basis_func, lambda)
+    % Evaluate model performance on test data
+    
+    N = length(t);
+    dt = t(2) - t(1);
+    x_hat = zeros(N, 1);
+    
+    % Filter states
+    x_filtered = 0;
+    u_filtered = 0;
+    
+    for i = 1:N
+        % Update filter states
+        if i == 1
+            x_filtered = x_data(i);
+            u_filtered = u_data(i);
+        else
+            x_filtered = x_filtered + dt * (-lambda * x_filtered + x_data(i));
+            u_filtered = u_filtered + dt * (-lambda * u_filtered + u_data(i));
+        end
+        
+        % Compute regressor vector
+        phi = basis_func(x_filtered, u_filtered);
+        
+        % Compute model prediction
+        x_hat(i) = phi' * theta;
+    end
+end
