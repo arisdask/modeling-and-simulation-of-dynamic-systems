@@ -439,13 +439,86 @@ e^{\top} \tilde{A} x = \text{tr}\{\tilde{A} x e^{\top}\} \quad\& \quad
 \vspace{+10pt}
 
 \begin{center}
-    \textit{Έχοντας πλέον βρει όλες τις προς επίλυση εξισώσεις μπορούμε να συνεχίσουμε με την προσομοίωση στο MATLAB.}
+    \textit{Έχοντας πλέον ολοκληρώσει την θεωρητική ανάλυση του προβλήματος μπορούμε να συνεχίσουμε με την συνοπτική ανάλυση του τρόπου προσομοίωσης/επίλυσης του προβλήματος στο MATLAB.}
 \end{center}
 
 \newpage
 
-\subsubsection{Αποτελέσματα MATLAB και Συμπεράσματα}
+\subsubsection{Προσομοίωση στο MATLAB}
 
+Συνοψίζοντας την ανάλυση της προηγούμενης ενότητας, για την εύρεση των προς εκτίμηση παραμέτρων, έχουμε καταλήξει στο εξής σύστημα προς επίλυση:
+
+\noindent\textbullet\hspace{0.2em} Η πρώτη διαφορική εξίσωση που θέλουμε να λύσουμε είναι αυτή του πραγματικού συστήματος, 
+καθώς για κάθε χρονική στιγμή πρέπει να γνωρίζουμε την $x(t)$ (η μέθοδος είναι πραγματικού χρόνου επομένως λύνουμε με \textit{ode45} αυτήν την διαφορική, ταυτόχρονα με όλες τις υπόλοιπες):
+\begin{equation}
+    \dot{x}(t) = A_{\text{true}} x(t) + B_{\text{true}} u(t),
+\end{equation}
+όπου \( x(t) \in \mathbb{R}^2 \) είναι το διάνυσμα κατάστασης και \( u(t) \in \mathbb{R} \) είναι ένα γνωστό σήμα εισόδου της επιλογής μας (θα αναφερθούμε στην επιλογή του παρακάτω).  
+
+\noindent\textbullet\hspace{0.2em} Η δεύτερη διαφορική αναφέρεται στο σύστημα αναγνώρισης. Οι πίνακες \( A_{\text{true}} = A \in \mathbb{R}^{2 \times 2} \) και \( B_{\text{true}} = B \in \mathbb{R}^{2 \times 1} \) για το πάνω σύστημα θεωρούνται γνωστοί, 
+όμως θα πρέπει να εκτιμηθούν από το σύστημα αναγνώρισης το οποίο ορίστηκε στην προηγούμενη ανάλυση με την παρακάτω μεικτή δομή:
+\begin{equation}
+    \dot{\hat{x}}(t) = A_{\text{hat}} x(t) + B_{\text{hat}} u(t) + C \left( x(t) - \hat{x}(t) \right),
+\end{equation}
+όπου:
+\[
+\hat{A} = A_{\text{hat}} = 
+\begin{bmatrix}
+\hat\theta_1 & \hat\theta_2 \\
+\hat\theta_3 & \hat\theta_4
+\end{bmatrix}, \quad
+\hat{B} = B_{\text{hat}} = 
+\begin{bmatrix}
+\hat\theta_5 \\
+\hat\theta_6
+\end{bmatrix}, \quad
+e(t) = x(t) - \hat{x}(t), \quad 
+C = \theta_{m} \cdot I_2,
+\]
+με το $\theta_{m}$ να πρέπει να είναι θετικός αριθμός της επιλογής μας, ώστε να ικανοποιείται η \eqref{eq:vdot_final_b}.
+
+\noindent\textbullet\hspace{0.2em} Τέλος το σύστημά μας πρέπει να περιλαμβάνει τον νόμο ενημέρωσης παραμέτρων (με περιορισμούς).
+Ο αντίστοιχος νόμος χωρίς περιορισμούς δίνεται από την \eqref{eq:theta_dot}, 
+και κλιμακώνεται από έναν θετικά ορισμένο διαγώνιο πίνακα \( \Gamma = \mathrm{diag}(\gamma_1, \ldots, \gamma_6) \).
+Για την δε επιβολή περιορισμών στις παραμέτρους, εφαρμόζεται η μέθοδος προβολής της \eqref{eq:update_theta}.
+
+
+Άρα, το πλήρες σύστημα που θα δώσουμε στην \textit{ode45} για επίλυση είναι το εξής:
+\begin{equation}
+\frac{d}{dt}
+\begin{bmatrix}
+x(t) \\
+\hat{x}(t) \\
+\theta(t)
+\end{bmatrix}
+=
+\begin{bmatrix}
+A_{\text{true}} x(t) + B_{\text{true}} u(t) \\
+A_{\text{hat}} x(t) + B_{\text{hat}} u(t) + C (x(t) - \hat{x}(t)) \\
+\text{Proj}\left( \hat\theta_{\text{current}}, \Gamma \dot{\hat\theta}_{\text{current}} \right)
+\end{bmatrix},
+\end{equation}
+με κατάλληλες αρχικές τιμές για τα $x_0$, $\hat{x}_0$ και $\hat\theta_0$.
+
+\begin{examplebox}{Σχόλιο}
+    Η συνάρτηση προβολής $\text{Proj}\left( \hat\theta_{\text{current}}, \Gamma \dot{\hat\theta}_{\text{current}}  \right)$ 
+    παίρνει ως όρισμα και το $\hat\theta_{\text{current}}$ για να ελέγξει το εσωτερικό γενόμενο αυτού με τις παραγώγους των συναρτήσεων περιορισμών, 
+    \eqref{eq:grad_g}\textemdash μιας και με βάση το πρόσημο του αποτελέσματος βρίσκει αν και ποιοι εκ των περιορισμών είναι ενεργοί ώστε να κάνει την αντίστοιχη προβολή. 
+\end{examplebox}
+
+Στο αρχείο \textit{src/constrainedSystemDynamics.m} έχει εκφραστεί το παραπάνω σύστημα, 
+το οποίο λύνεται (με \textit{ode45}) στο εκτελέσιμο script: \underline{\textit{mainPart1a.m}} που αντιστοιχεί στο Ερώτημα α του Θέματος 1.
+
+\begin{center}
+    \textit{Στην συνέχεια παραθέτουμε τις ζητούμενες γραφικές παραστάσεις και εξάγουμε σχετικά συμπεράσματα.}
+\end{center}
+
+\subsubsection{Αποτελέσματα MATLAB και Συμπεράσματα}
+TODO:\\
+ - έλεγχος ευστάθειας \\
+ - επιλογη εισόδου \\
+ - Βάλε τα πλοτ που έβγαλες \\
+ - πες συμπεράσματα \\
 
 
 
@@ -454,7 +527,7 @@ e^{\top} \tilde{A} x = \text{tr}\{\tilde{A} x e^{\top}\} \quad\& \quad
 \subsection{Ερώτημα Β}
 
 Στην ανάλυση του προβλήματός μας ως τώρα υποθέσαμε την \textit{\textbf{πλήρη γνώση της δομής του συστήματος}} που μελετάμε 
-και με βάση αυτήν σχεδιάσαμε τρόπους εκτίμησης κάποιων άγνωστων παραμέτρων του (λαμβάνοντας υπόψιν τους δοθέντες περιορισμούς). 
+και με βάση αυτήν σχεδιάσαμε έναν τρόπο εκτίμησης των άγνωστων παραμέτρων του (λαμβάνοντας υπόψιν τους δοθέντες περιορισμούς). 
 Σε πρακτικές εφαρμογές όμως αυτό είναι ανεφάρμοστο, μιας και πάντα υπάρχουν άγνωστες μη γραμμικότητες που δεν μοντελοποιούνται. 
 
 Γι' αυτόν τον λόγο, σε αυτό το ερώτημα θα εισάγουμε στο σύστημα \textbf{σφάλμα πόλωσης} $\omega \in \mathbb{R}^2$ 
@@ -612,569 +685,88 @@ e^{\top} \tilde{A} x = \text{tr}\{\tilde{A} x e^{\top}\} \quad\& \quad
 \newpage 
 
 \subsubsection{Εισαγωγή Σφάλματος Πόλωσης στο Σύστημα}
+Για να καταλήξουμε στην \eqref{eq:sys_param_filter_2} θεωρήσαμε γνωστή, μέσω της \eqref{eq:sys_eq_1}, την δομή του συστήματος που μελετάμε.
+Όπως αναφέραμε όμως, σε πρακτικές εφαρμογές πάντα υπάρχουν άγνωστες μη-γραμμικότητες. 
+Έτσι, ακόμα και αν γνωρίζαμε το προς εκτίμηση \(\theta^*\), η έξοδος του συστήματος στην πράξη δεν θα περιγράφονταν από την \eqref{eq:sys_param_filter_2} αλλά από την:
+\begin{equation}\label{eq:system_polosi}
+    y = \Phi \theta_{\lambda}^{*} + \omega, 
+\end{equation}
+στην οποία, ο όρος \(\omega\) μπορεί να θεωρηθεί ως το σφάλμα προσέγγισης της εξόδου \(y\) του πραγματικού συστήματος από το $\Phi \theta_{\lambda}^{*}$ και στην ανάλυση που κάνουμε για αυτό ισχύει ότι: $||\omega(t)|| \le \bar{\omega}, \forall t \ge 0$, για κάποια άγνωστη σταθερά $\bar{\omega} > 0$.
 
-\subsubsection{Μέθοδος Κλήσης Με Προβολή}
+Για να λύσουμε το πρόβλημα μπορούμε να χρησιμοποιήσουμε την διακοπτική $\sigma$-τροποποίηση η οποία, σύμφωνα με την θεωρία, 
+εξασφαλίζει τόσο ότι δεν θα έχουμε παραμετρική ολίσθηση όσο και σύγκλιση του σφάλματος εξόδου στο $0$ (θεωρητικά).
+Εφόσον έχουμε ήδη φέρει το σύστημα στην μορφή \eqref{eq:sys_param_filter_2}, στην συνέχεια θα σχεδιάσουμε/εφαρμόσουμε την μέθοδο κλίση με συνεχή διακοπτική $\sigma$-τροποποίηση για την εύρεση των παραμέτρων $\theta_{\lambda}^{*}$.
 
-\subsubsection{Μέθοδος Κλίσης με Διακοπτική σ Τροποποίηση}
+Το σύστημα που χρειάζεται να λύσουμε για την εύρεση των παραμέτρων $\hat\theta_{\lambda}^{*}$, αν δεν είχαμε περιορισμούς για τις επιτρεπτές τιμές αυτών, είναι το εξής:
+\begin{align}\label{eq:system_biased_omega}
+    y &= \Phi \theta_{\lambda}^{*} + \omega, \quad |\theta_{\lambda}^{*}| \leq M \notag \\
+    \hat{y} &= \Phi\hat{\theta}_{\lambda}^{*}  \notag\\
+    \dot{\hat{\theta}}_{\lambda}^{*} &= -\sigma_\delta \Gamma \hat{\theta}_{\lambda}^{*} -\Gamma \nabla K(\hat{\theta}_{\lambda}^{*}) \\
+    \sigma_\delta &= 
+    \begin{cases}
+        0, & \text{αν } |\hat{\theta}_{\lambda}^{*}| < M \\
+        \sigma \left( \frac{|\hat{\theta}_{\lambda}^{*}|}{M} - 1 \right), & \text{αν } M \leq |\hat{\theta}_{\lambda}^{*}| \leq 2M \\
+        \sigma, & \text{αν } |\hat{\theta}_{\lambda}^{*}| > 2M
+    \end{cases} \notag,
+\end{align}
+όπου:
+\begin{itemize}[noitemsep, nolistsep]
+    \item Το $K(\hat{\theta}_{\lambda}^{*})$ είναι η συνάρτηση κόστους που θέλουμε να ελαχιστοποιήσουμε για $\hat{\theta}_{\lambda}^{*} \in \Theta$. Ως συνάρτηση κόστους επιλέγουμε την $K(\hat{\theta}_{\lambda}^{*}) = \frac{||e||^2}{2} = \frac{||y - \Phi\hat{\theta}_{\lambda}^{*}||^2}{2}$.
+    Παραγωγίζοντάς την παίρνουμε $\nabla K(\hat{\theta}_{\lambda}^{*}) = -\Phi^{\top} e$.
+    \item Το $M >0$ είναι γνωστή σταθερά την οποία πρέπει να θέσουμε σε κατάλληλη τιμή μέσω trial and error για να ικανοποιεί την: $|\theta_{\lambda}^{*}| \leq M$ (άρα πρέπει να οριστεί ίση με έναν αρκούντως μεγάλο θετικό αριθμό). 
+    \item Το $\sigma >0$ είναι ο συντελεστής της $\sigma$-τροποποίησης. Θα μπορούσαμε να ορίζουμε διαφορετικό $\sigma$ για κάθε μία εκ των παραμέτρων προς εκτίμηση, $\hat{\theta}_i$, όμως για απλότητα διατηρούμε ίδια τιμή σε όλους. 
+\end{itemize}
 
-\subsubsection{Αποτελέσματα MATLAB και Συμπεράσματα}
+Για να αξιοποιεί ο αλγόριθμος πραγματικού χρόνου που σχεδιάζουμε την πληροφορία ότι $\hat{\theta}_{\lambda}^{*} \in \Theta$, 
+στην ενημέρωση του $\dot{\hat{\theta}}_{\lambda}^{*}$ που παραθέσαμε στο παραπάνω σύστημα της \eqref{eq:system_biased_omega} 
+θα εφαρμόζουμε προβολή στο σύνορο $\Theta_b$ μέσω της σχέσης \eqref{eq:update_theta} που αναπτύξαμε για τις συνθήκες περιορισμού του προβλήματος. 
+Έτσι, μπορούμε να εγγυηθούμε ότι το $\hat{\theta}_{\lambda}^{*}$ δεν θα βγει ποτέ εκτός του συνόλου $\Theta$.
+
+\begin{examplebox}{Παρατήρηση}
+    Ο αλγόριθμος που θέλουμε να σχεδιάσουμε είναι πραγματικού χρόνου. 
+    Επομένως πρέπει στο σύστημα εξισώσεων της \eqref{eq:system_biased_omega} να συμπεριλάβουμε και τον μηχανισμό με τον οποίο βρίσκουμε τις μη μηδενικές συνιστώσες του πίνακα $\Phi$, για κάθε δεδομένη χρονική στιγμή.
+    Από την \eqref{eq:sys_param_filter_2} βλέπουμε ότι για τα μη μηδενικά στοιχεία του πίνακα $\Phi$ 
+    (και για $\lambda_1 = \lambda_2 = \lambda$) ισχύει:
+    \begin{align*}
+        \Phi_{11} &= \frac{X_1}{s + \lambda} \xRightarrow{ILT} \dot\Phi_{11}(t) = x_1(t) - \lambda \Phi_{11}(t), \quad \Phi_{11}(t) = \Phi_{23}(t)\  (\text{για κοινό φίλτρο $\lambda$}), \\
+        \Phi_{12} &= \frac{X_2}{s + \lambda} \xRightarrow{ILT} \dot\Phi_{12}(t) = x_2(t) - \lambda \Phi_{12}(t), \quad \Phi_{12}(t) = \Phi_{24}(t)\  (-//-), \\
+        \Phi_{15} &= \frac{U}{s + \lambda} \xRightarrow{ILT} \dot\Phi_{15}(t) = u(t) - \lambda \Phi_{15}(t), \quad \Phi_{15}(t) = \Phi_{26}(t)\  (-//-). 
+    \end{align*}
+
+    Επομένως, για να έχουμε κάθε χρονική στιγμή την τρέχουσα τιμή του πίνακα $\Phi(t)$, στην επίλυση του συστήματος των διαφορικών με \textit{ode45}
+    συμπεριλαμβάνουμε και τις παραπάνω τρεις. 
+\end{examplebox}
 
 \newpage
 
+\subsubsection{Προσομοίωση στο MATLAB}
+TODO: \\
+- Πως μοντελοποιώ το ω \\
+- Κάνε ένα σχόλιο για ευστάθεια \\
+\subsubsection{Αποτελέσματα MATLAB και Συμπεράσματα}
+TODO: \\
+- Βάλε πλοτς και πες συμπεράσματα
+- πως επηρεάζει το μπαρ-ω την σύγκληση (την κάνει χειρότερη!!)\\
 
-\subsection{Notes - Μέγιστης Καθόδου}
 
-\subsubsection{Εφαρμογή Μεθόδου Μέγιστης Καθόδου}
 
-\noindent\textbullet\hspace{0.2em} Για τον προσδιορισμού του $\hat{\theta}$ θεωρούμε το σύστημα αναγνώρισης (\textit{identifier}):
-\vspace{-\topsep}
-\vspace{+3pt}
-\[
-\hat{y}(t) = \hat{\theta}^Τ(t) \cdot \phi(t),
-\]
-όπου η έξοδος $\hat{y}(t)$ αποτελεί εκτίμηση της εξόδου $y(t)$ του πραγματικού συστήματος. Με βάση τα παραπάνω, ορίζουμε το σφάλμα αναγνώρισης:
-\vspace{-\topsep}
-\vspace{+3pt}
-\[
-e = y - \hat{y} = \theta^{*T} \cdot \phi - \hat{\theta}^{\top} \cdot \phi = \left( \theta^* - \hat{\theta} \right)^{\top} \cdot \phi.
-\]
+\newpage
 
-\vspace{-10pt}
+\section{Θέμα 2}
 
-\noindent Γράφοντας $\tilde{\theta} = \hat{\theta} - \theta^*$, έχουμε: $e = -\tilde{\theta}^Τ \cdot \phi$. Υπενθυμίζουμε ότι το $e(t)$ είναι μετρήσιμο σήμα, οπότε μπορούμε να το χρησιμοποιήσουμε στην σχεδίαση, σε αντίθεση με το $e_\theta = \tilde{\theta}$ που δεν είναι μετρήσιμο (αλλά πρέπει να αποδειχθεί η ευστάθειά του). 
-
-\vspace{+8pt}
-
-\noindent\textbullet\hspace{0.2em} Ως συνάρτηση κόστους του $e$, την οποία θα ελαχιστοποιούμε ως προς $\hat{\theta}$, παίρνουμε την:
-\vspace{-\topsep}
-\vspace{+3pt}
-\[
-K(\hat{\theta}) = \frac{e^2}{2} = \frac{(y - \hat{\theta}\cdot \phi)^2}{2}.
-\]
-
-\noindent Μας ενδιαφέρει να βρούμε το:
-\vspace{-\topsep}
-\vspace{+3pt}
-\[
-\arg \min_{\hat{\theta}} K(\hat{\theta}).
-\]
-
-\vspace{+8pt}
-
-\noindent\textbullet\hspace{0.2em} Για να το βρούμε αυτό, λαμβάνουμε υπόψιν ότι η $K(\hat{\theta})$ είναι κυρτή $\forall t \geq 0$\textemdash επομένως κάθε τοπικό ελάχιστό της θα είναι και ολικό και ικανοποιεί την εξίσωση:
-\vspace{-\topsep}
-\vspace{+3pt}
-\[
-\nabla K(\hat{\theta})|_{\hat{\theta} = \theta^*} = 0,
-\]
-από την οποία κατόπιν πράξεων παίρνουμε:
-\vspace{-\topsep}
-\vspace{+3pt}
-\[
-\nabla K(\hat{\theta}) = -(y - \hat{\theta} \phi) \phi
-\]
-
-\vspace{+8pt}
-
-\noindent\textbullet\hspace{0.2em} Από την μέθοδο της κλίσης έχουμε ότι:
-\vspace{-\topsep}
-\vspace{+3pt}
-\begin{equation}
-    \dot{\hat{\theta}} = -\gamma \nabla K(\hat{\theta}) = \gamma(y - \hat{\theta} \phi)\phi = \gamma \cdot e \cdot \phi, \quad \hat{\theta}(0) = \theta_0,
-    \label{eq:steep_theta_eq}
+Στόχος του θέματος αυτού είναι η μελέτη της \textit{διαδικασίας επιλογής και αξιολόγησης} μοντέλου 
+για την προσέγγιση αγνώστου μη-γραμμικού δυναμικού συστήματος της μορφής:
+\begin{equation}\label{t2:sys_form}
+    \dot x (t) = f(x(t), u(t), \theta), \quad f: \mathbb{R} \times \mathbb{R} \rightarrow \mathbb{R}, 
 \end{equation}
-όπου $\gamma > 0$ μια σταθερά και $\hat{\theta}(0)$ η αρχική τιμή του $\hat{\theta}$ (τυχαίας επιλογής).
-
-\vspace{+8pt}
-
-\noindent\textbullet\hspace{0.2em} Άρα από την \eqref{eq:steep_theta_eq} βγάζουμε ότι:
-\vspace{-\topsep}
-\vspace{+3pt}
-\[
-\begin{cases} 
-\dot{\hat{\theta}}_1 = \dot{\hat{a}}_1 = \gamma e\phi_1, \quad \hat{\theta}_1(0) = \hat{\theta}_{1, 0} \\ 
-\dot{\hat{\theta}}_2 = \dot{\hat{a}}_2 = \gamma e\phi_2, \quad \hat{\theta}_2(0) = \hat{\theta}_{2, 0} \\
-\dot{\hat{\theta}}_3 = \dot{\hat{b}}_0 = \gamma e\phi_3, \quad \hat{\theta}_3(0) = \hat{\theta}_{3, 0} 
-\end{cases}, 
-\quad \text{με} \  
-\begin{cases} 
-\phi_1 = -\frac{1}{s+\lambda_1}\dot{x} \Rightarrow \dot{\phi}_1 = -\lambda_1 \phi_1 - \dot{x}, \quad \phi_1(0) = 0 \\ 
-\phi_2 = -\frac{1}{s+\lambda_1}x \Rightarrow \dot{\phi}_2 = -\lambda_1 \phi_2 - x, \quad \phi_2(0) = 0 \\ 
-\phi_3 = +\frac{1}{s+\lambda_1}u \Rightarrow \dot{\phi}_3 = -\lambda_1 \phi_3 + u, \quad \phi_3(0) = 0 \\ 
-\end{cases},
-\]
-
-\noindent και συνολικά όλη η παραπάνω ανάλυση θα μας δώσει τιμές για τις:
-\begin{itemize}[noitemsep, nolistsep]
-    \item $\hat{\theta}_1 = \hat{a}_1 - \lambda_1 = \hat{b} / \hat{m} - \lambda_1$,
-    \item $\hat{\theta}_2 = \hat{a}_2 = \hat{k} / \hat{m}$ και
-    \item $\hat{\theta}_3 = \hat{b}_0 = 1 / \hat{m}$
-\end{itemize}
-και, όπως είναι φανερό, από αυτές μπορούν να προκύψουν και οι εκτιμήσεις $\hat{m}$, $\hat{b}$ και $\hat{k}$.  
-
-\begin{examplebox}{Σχόλιο}
-    Το πραγματικό σύστημα, όπως έχουμε αναφέρει, είναι ευσταθές (άρα και για φραγμένη είσοδο, θα έχουμε φραγμένη έξοδο). Δεν μπορούμε όμως να ισχυριστούμε απευθείας το ίδιο και για το σύστημα αναγνώρισης. Το γεγονός ότι το $\hat{\theta}(t)$ παράγεται μέσω της \eqref{eq:steep_theta_eq} μπορεί να οδηγήσει το σύστημα αναγνώρισης σε αστάθεια. Πρέπει επομένως, προτού προχωρήσουμε στην ανάλυση των αποτελεσμάτων του MATLAB, να μελετήσουμε την ευστάθεια του συστήματος αναγνώρισης, με βάση την \eqref{eq:steep_theta_eq}.
-\end{examplebox}
-
-Θα μελετήσουμε τώρα την ευστάθεια του συστήματος όταν αυτό λειτουργεί με τις εκτιμώμενες παραμέτρους $\hat{a}_1$, $\hat{a}_2$ και $\hat{b}_0$ αντί για τις πραγματικές τους τιμές. 
-Για τον σκοπό αυτό, επιλέγεται ως συνάρτηση Lyapunov η $ V = \frac{\tilde{\theta}^2}{2} \geq 0 $. Υπολογίζοντας την παράγωγό της, προκύπτει:
-\vspace{-\topsep}
-\vspace{+3pt}
-\[
-\dot{V} = \tilde{\theta} \dot{\tilde{\theta}} = -\gamma \phi^2 \tilde{\theta}^2 = -\gamma e^2 \leq 0
-\]
-
-Εφόσον $ \tilde{\theta} \in L_\infty $ και $ \tilde{\theta} = \hat{\theta} - \theta^* $, με $ \theta^* $ σταθερά, συνεπάγεται ότι $ \hat{\theta} \in L_\infty $. Επιπλέον, η $ V $ είναι μη αρνητική και φθίνουσα, άρα κάτω φραγμένη, γεγονός που συνεπάγεται ότι το όριό της στο άπειρο υπάρχει:
-\vspace{-\topsep}
-\vspace{+3pt}
-\[
-\lim_{t \to \infty} V(\tilde{\theta}(t)) = V_\infty
-\]
-Ολοκληρώνοντας την εξίσωση της παραγώγου της $ V $ ως προς τον χρόνο, λαμβάνουμε:
-\vspace{-\topsep}
-\vspace{+3pt}
-\[
-\int_0^\infty e^2 \, d\tau = -\frac{1}{\gamma} \int_0^\infty \dot{V}(\tau) \, d\tau = -\frac{1}{\gamma} [V_\infty - V(0)]
-\]
-με $ V(0) = \frac{\tilde{\theta}(0)^2}{2} $, οπότε καταλήγουμε ότι $ e \in L_2 $.
-
-Περαιτέρω, γνωρίζουμε ότι $ \hat{y} = \hat{\theta}^{\top} \phi $. Δεδομένου ότι $ \hat{\theta}, \phi \in L_\infty $, προκύπτει $ \hat{y} \in L_\infty $. Για το σφάλμα εξόδου $ e = y - \hat{y} $ ισχύει επίσης $ e \in L_\infty $. Συνεπώς, έχουμε $ e \in L_2 \cap L_\infty $ και $ \dot{e} \in L_\infty $. Εφαρμόζοντας το λήμμα του Barbalat, καταλήγουμε στο συμπέρασμα ότι:
-\vspace{-\topsep}
-\vspace{+3pt}
-\[
-\lim_{t \to \infty} e(t) = 0
-\]
-Επιπλέον, επειδή $ \dot{\hat{\theta}} = -\gamma e \phi $, και δεδομένου ότι $ e(t) \to 0 $ και $ \phi \in L_\infty $, προκύπτει:
-\vspace{-\topsep}
-\vspace{+3pt}
-\[
-\lim_{t \to \infty} \dot{\hat{\theta}} = 0
-\]
-Συνοψίζοντας, για είσοδο που ικανοποιεί τις συνθήκες $ \phi, \dot{\phi} \in L_\infty $, ο αναδρομικός νόμος μεταβολής των εκτιμώμενων παραμέτρων $ \dot{\hat{\theta}} = -\gamma e \phi $ εγγυάται ότι δεν θα έχουμε απόκλιση της εκτιμώμενης εξόδου, $ \hat{y} $, από την πραγματική έξοδο, $ y $, του συστήματος.
-
-\hrule
-
-\vspace{+10pt}
-
-\noindent\textit{\textbf{Παρατήρηση:}} 
-
-Στην παραπάνω ανάλυση προσπαθούμε να ελαχιστοποιήσουμε την διαφορά $e = y - \hat{y}$. Όμως, με την χρήση του φίλτρου πρώτης τάξης, το $y$ που έχουμε αναφέρεται στο $\dot{x}$ και όχι στο $x$. Άρα, το σήμα με το οποίο συγκρίνουμε το μοντέλο με το πραγματικό σύστημα είναι το $\dot{x}(t)$, που σημαίνει ότι ακόμη και αν ελαχιστοποιήσουμε την διαφορά των δύο σημάτων των παραγώγων \textbf{δεν} συνεπάγεται και ελαχιστοποίηση της διαφοράς των σημάτων των $x(t)$ (αλλά συνεπάγεται σταθερό ρυθμό μεταβολής της διαφοράς αυτών). Αυτό δεν μας αποτρέπει να συνεχίσουμε την ανάλυσή μας ως έχει, όμως για πληρότητα θα παραθέσουμε εδώ και την ανάλυση με χρήση ενός φίλτρου δεύτερης τάξης, ώστε το $y$ στον τύπο του σφάλματος, $e$, να αναφέρεται στο ίδιο και $x$.
-
-\vspace{+5pt}
-
-Συνοπτικά, ακολουθώντας τα παρακάτω βήματα παίρνουμε το ζητούμενο:
-$$\ddot{x}(t) = - \frac{b}{m} \dot{x}(t) - \frac{k}{m} x(t) + \frac{1}{m} u(t) \Rightarrow 
-\ddot{x}(t) = - a_1 \dot{x}(t) - a_2 x(t) + b_0 u(t) \Rightarrow$$
-$$\ddot{x}(t) + \lambda_1 \dot{x}(t) + \lambda_2 x(t)= \lambda_1 \dot{x}(t) - a_1 \dot{x}(t) + \lambda_2 x(t) - a_2 x(t) + b_0 u(t) 
-\xRightarrow{\substack{\text{M/L} \\ \dot{x}(t) = z(t)}}$$
-$$s^2 X + \lambda_1 s X + \lambda_2 X= \lambda_1 Z - a_1 Z + \lambda_2 X - a_2 X+ b_0 U \Rightarrow
-(s^2 + \lambda_1 s + \lambda_2) X= -(a_1 - \lambda_1) Z - (a_2 -\lambda_2) X+ b_0 U \Rightarrow$$
-$$X = - \frac{a_1 - \lambda_1}{(s^2 + \lambda_1 s + \lambda_2)} Z - \frac{a_2 - \lambda_2}{(s^2 + \lambda_1 s + \lambda_2)} X+ \frac{b_0}{(s^2 + \lambda_1 s + \lambda_2)} U \Rightarrow$$
-$$y = [a_1 - \lambda_1 \ \ a_2 - \lambda_2 \ \ b_0]^{\top} \cdot \left[ -\frac{1}{s^2 + \lambda_1 s + \lambda_2} \dot{x} \ \ -\frac{1}{s^2 + \lambda_1 s + \lambda_2} x \ \ \frac{1}{s^2 + \lambda_1 s + \lambda_2} u \right].$$
-Προφανώς, για να έχουμε ευστάθεια, πρέπει να είμαστε προσεκτικοί στην επιλογή των $\lambda_1$ και $\lambda_2$ μίας και οι ρίζες του πολυωνύμου δευτέρου βαθμού πρέπει να κυμαίνονται στο αριστερό ανοικτό ημιεπίπεδο.  
-
-Ακολουθώντας την ίδια μαθηματική ανάλυση βρίσκουμε και πάλι πως για να έχουμε ελαχιστοποίηση του σφάλματος πρέπει να ικανοποιείται και πάλι η \eqref{eq:steep_theta_eq}. Άρα το τελικό σύστημα που θα πρέπει να λυθεί είναι το:
-\vspace{-\topsep}
-\vspace{+3pt}
-\[
-\begin{cases} 
-\dot{\hat{\theta}}_1 = \dot{\hat{a}}_1 = \gamma e\phi_1, \quad \hat{\theta}_1(0) = \hat{\theta}_{1, 0} \\ 
-\dot{\hat{\theta}}_2 = \dot{\hat{a}}_2 = \gamma e\phi_2, \quad \hat{\theta}_2(0) = \hat{\theta}_{2, 0} \\
-\dot{\hat{\theta}}_3 = \dot{\hat{b}}_0 = \gamma e\phi_3, \quad \hat{\theta}_3(0) = \hat{\theta}_{3, 0} 
-\end{cases}, 
-\ \text{με} \  
-\begin{cases} 
-\phi_1 = -\frac{1}{s^2 + \lambda_1 s + \lambda_2}\dot{x} \Rightarrow \ddot{\phi}_1 = -\lambda_1 \dot{\phi_1} -\lambda_2 \phi_1 - \dot{x}, \quad \phi_1(0) = 0 \\ 
-\phi_2 = -\frac{1}{s^2 + \lambda_1 s + \lambda_2}x \Rightarrow \ddot{\phi}_2 = -\lambda_1 \dot{\phi_2} -\lambda_2 \phi_2 - x, \quad \phi_2(0) = 0 \\ 
-\phi_3 = +\frac{1}{s^2 + \lambda_1 s + \lambda_2}u \Rightarrow \ddot{\phi}_3 = -\lambda_1 \dot{\phi_3} -\lambda_2 \phi_3 + u, \quad \phi_3(0) = 0 \\ 
-\end{cases},
-\]
-
-\noindent και συνολικά όλη η παραπάνω ανάλυση θα μας δώσει τιμές για τις:
-\begin{itemize}[noitemsep, nolistsep]
-    \item $\hat{\theta}_1 = \hat{a}_1 - \lambda_1 = \hat{b} / \hat{m} - \lambda_1$,
-    \item $\hat{\theta}_2 = \hat{a}_2 - \lambda_2 = \hat{k} / \hat{m} - \lambda_2$ και
-    \item $\hat{\theta}_3 = \hat{b}_0 = 1 / \hat{m}$
-\end{itemize}
-και πάλι, όπως είναι φανερό, από αυτές μπορούν να προκύψουν και οι εκτιμήσεις $\hat{m}$, $\hat{b}$ και $\hat{k}$.  
-
-
-
-\subsubsection{Αποτελέσματα Προσομοίωσης MATLAB}
-
-Το αρχείο στο οποίο βρίσκεται ο κώδικας για όλο το Ερώτημα Α είναι το \textit{mainTopic1\_a.m}. 
-Σε αυτό μπορούμε να επιλέξουμε αν ο εκτιμητής μας θα εφαρμόσει την ανάλυση με φίλτρο πρώτης ή δεύτερης τάξης, μέσω της μεταβλητής: \texttt{filter\_version} (γραμμή23). 
-Αν αυτή ισούται με 1, τότε αναφερόμαστε στην ανάλυση με φίλτρο πρώτης τάξης και με 2, σε φίλτρο δεύτερης.
-Ο δε κώδικας τρέχει τόσο για είσοδο $u(t) = 2.5$ (περίπτωση i) όσο και για την ημιτονοειδή είσοδο $u(t) = 2.5 \sin(t), \forall t \ge 0$ (περίπτωση ii).
-
-Για κάθε περίπτωση φίλτρου, με trial and error βρίσκουμε κατάλληλες τιμές για τα $\lambda_1, \ \gamma$ (και $\lambda_2$), ώστε οι εκτιμήσεις μας να είναι αρκούντως καλές (και η απόκλιση/σφάλμα της εξόδων $\hat{y}(t)$ του μοντέλου να μην διαφέρει σημαντικά από από αυτήν του πραγματικού συστήματος). Υπάρχουν πολλοί συνδυασμοί $\lambda_1, \ \gamma$ (και $\lambda_2$) που μπορούν να δώσουν επαρκώς καλά αποτελέσματα αλλά, για τις ανάγκες της παρουσίασής μας στην αναφορά, επιλέγουμε να δείξουμε μόνο έναν ενδεικτικό συνδυασμό ανά περίπτωση φίλτρου. Επίσης προσέχουμε την αρχικοποίηση που κάνουμε στο $\theta$, μιας και αν αρχίσουμε από το μηδέν θα έχουμε αρχικά μεγάλο σφάλμα που θα "χαλάει" το scaling στα διαγράμματα. Με κατάλληλες δοκιμές μπορούμε να βρούμε αρχικές τιμές που να οδηγούν σε σύγκλιση των εκτιμώμενων παραμέτρων (αρκούντως κοντά στις πραγματικές τιμές), μέσα στο χρονικό διάστημα της προσομοίωσης ($20\sec$).
-
-\vspace{+10pt}
-
-\noindent\textit{\textbf{Περίπτωση Φίλτρου Πρώτης Τάξης}} 
-
-Για την περίπτωση του φίλτρου πρώτης τάξης θέτουμε:
-\begin{itemize}[noitemsep, nolistsep]
-    \item \texttt{filter\_version = 1}
-    \item \texttt{lambda1 = 0.2}
-    \item \texttt{gamma = 50}
-\end{itemize}
-
-\begin{center}
-    \textbf{(i)} $u(t) = 2.5$
-\end{center}
-
-\noindent Για την υποπερίπτωση της σταθερής εισόδου λαμβάνουμε τα εξής αποτελέσματα:
-
-\begin{figure}[h!]
-    % \centering
-    % \hfill
-    % First row
-    \begin{subfigure}{0.45\textwidth}
-        \centering
-        \includegraphics[width=1.1\textwidth, height=0.25\textheight]{plots/t1a_1.png}
-        \caption{}
-        \label{fig:t1a_1}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}{0.45\textwidth}
-        \centering
-        \includegraphics[width=1.1\textwidth, height=0.25\textheight]{plots/t1a_2.png}
-        \caption{}
-        \label{fig:t1a_2}
-    \end{subfigure}
-    % \hfill
-
-\end{figure}
-
-\begin{figure}[h!]
-    % \centering
-    % \hfill
-    % First row
-    \begin{subfigure}{0.45\textwidth}
-        \centering
-        \includegraphics[width=1.1\textwidth, height=0.25\textheight]{plots/t1a_3.png}
-        \caption{}
-        \label{fig:t1a_3}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}{0.45\textwidth}
-        \centering
-        \includegraphics[width=1.1\textwidth, height=0.25\textheight]{plots/t1a_4.png}
-        \caption{}
-        \label{fig:t1a_4}
-    \end{subfigure}
-    % \hfill
-
-\end{figure}
-
-Υπενθυμίζουμε ότι με το φίλτρο πρώτης τάξης προέκυψε σφάλμα προς ελαχιστοποίηση το $e = \dot{x} - \dot{\hat{x}}$, με αποτέλεσμα στην πράξη να στοχεύουμε στην ελαχιστοποίηση τις διαφοράς των παραγώγων του $x(t)$ (διαφορά πραγματικού - μοντέλου). Ακόμη και σε αυτήν την περίπτωση όμως είναι φανερό ότι μπορούμε να κάνουμε αρκούντως καλές προσομοιώσεις που να έχουν μικρό σφάλμα σε σχέση με το πραγματικό μοντέλο, και αυτό οφείλετε στο fine tuning της παραμέτρου $\gamma$ (αλλά και στην επιλογή του $\lambda$, όπως και των κατάλληλων αρχικών συνθηκών). 
-
-Βέβαια, η μικρή διαφορά στο σφάλμα δεν συνεπάγεται άμεσα και καλή εκτίμηση όλων των παραμέτρων του συστήματος. Παρακάτω παραθέτουμε τις γραφικές παραστάσεις των εκτιμήσεων αυτών για να μπορέσουμε να εξάγουμε σχετικά συμπεράσματα. (Σημαντικό για την ανάλυση των παρακάτω είναι σε κάθε διάγραμμα να κοιτάμε το scale των γραφικών παραστάσεων.)
-
-\begin{figure}[h!]
-    % \centering
-    % \hfill
-    % First row
-    \begin{subfigure}{0.45\textwidth}
-        \centering
-        \includegraphics[width=1\textwidth, height=0.4\textheight]{plots/t1a_5.png}
-        \caption{}
-        \label{fig:t1a_5}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}{0.45\textwidth}
-        \centering
-        \includegraphics[width=1\textwidth, height=0.4\textheight]{plots/t1a_6.png}
-        \caption{}
-        \label{fig:t1a_6}
-    \end{subfigure}
-    % \hfill
-
-\end{figure}
-
-\begin{figure}[h!]
-    \centering
-    \includegraphics[width=0.47\textwidth, height=0.4\textheight]{plots/t1a_7.png}
-    \caption{}
-    \label{fig:t1a_7}
-\end{figure}
-
-Παρά τις προσπάθειες να καταφέρουμε να εκτιμούμε σωστά και τις τρεις παραμέτρους, πάντα τουλάχιστον μια από αυτές αποκλίνει σε αρκετά μεγαλύτερο ποσοστό από τις άλλες. Αυτό οφείλεται, μεταξύ άλλων, στην είσοδο την οποία δίνουμε για να κάνουμε την εκτίμηση (αν και σημαντικό ρόλο παίζει και το ίδιο το φίλτρο, όπως θα δούμε στην συνέχεια). Η σταθερή είσοδος (που δεν περιλαμβάνει κάποια συχνότητα), όπως θα δούμε και συγκριτικά με την ημιτονοειδή, δεν μπορεί να κάνει το ίδιο καλές εκτιμήσεις των παραμέτρων κάτι που δικαιολογείται από την Συνθήκη Επιμένουσας Διέγερσης, ΣΕΔ. Δεδομένου δηλαδή ότι έχουμε $n$ ($=3$) αγνώστους προς εκτίμηση, χρειαζόμαστε $n/2$ διαφορετικές συχνότητες για να κάνουμε ακριβή εκτίμηση σε καθεμία από αυτές.
-
-Παρακάτω παραθέτουμε τις τελικές εκτιμήσεις των παραμέτρων, με τα σχετικά σφάλματα από τις πραγματικές τιμές τους. Πρέπει να τονίσουμε ότι ως \textit{Final estimates} ονομάζουμε όχι την τελική εκτίμηση στα $20\sec$ αλλά τον μέσο όρο των τελευταίων 5 εκτιμήσεων της κάθε παραμέτρου. Με αυτόν τον τρόπο (και σε συνδυασμό με περαιτέρω στατιστική ανάλυση\textemdash εύρεση τυπικής απόκλισης, κλπ.) μπορούμε να έχουμε μια καλύτερη/πληρέστερη εικόνα για το πού κυμαίνονται οι τιμές των εκτιμήσεων, αποφεύγοντας να πέφτουμε σε outliers.
-
-\begin{figure}[h!]
-    \centering
-    \includegraphics[width=0.6\textwidth, height=0.1\textheight]{plots/t1a_8.png}
-    \caption{}
-    \label{fig:t1a_8}
-\end{figure}
-
-Από τον πάνω πίνακα των logs είναι φανερό αυτό που αναφέραμε και στην ανάλυση των διαγραμμάτων των $\hat{m}(t), \ \hat{b}(t), \& \ \hat{k}(t)$, ότι δηλαδή η μία παράμετρος (σε αυτήν την περίπτωση το $\hat{b}(t)$) δεν μπορεί να εκτιμηθεί στην ίδια τάξη ακρίβειας με τις άλλες δύο). 
-
-
-
-
-\begin{center}
-    \textbf{(ii)} $u(t) = 2.5 \sin(t)$
-\end{center}
-
-\noindent Για την υποπερίπτωση της ημιτονοειδούς εισόδου λαμβάνουμε τα εξής αποτελέσματα:
-
-\begin{figure}[h!]
-    % \centering
-    % \hfill
-    % First row
-    \begin{subfigure}{0.45\textwidth}
-        \centering
-        \includegraphics[width=1.1\textwidth, height=0.25\textheight]{plots/t1a_9.png}
-        \caption{}
-        \label{fig:t1a_9}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}{0.45\textwidth}
-        \centering
-        \includegraphics[width=1.1\textwidth, height=0.25\textheight]{plots/t1a_10.png}
-        \caption{}
-        \label{fig:t1a_10}
-    \end{subfigure}
-    % \hfill
-
-\end{figure}
-
-\begin{figure}[h!]
-    % \centering
-    % \hfill
-    % First row
-    \begin{subfigure}{0.45\textwidth}
-        \centering
-        \includegraphics[width=1.1\textwidth, height=0.25\textheight]{plots/t1a_11.png}
-        \caption{}
-        \label{fig:t1a_11}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}{0.45\textwidth}
-        \centering
-        \includegraphics[width=1.1\textwidth, height=0.25\textheight]{plots/t1a_12.png}
-        \caption{}
-        \label{fig:t1a_12}
-    \end{subfigure}
-    % \hfill
-
-\end{figure}
-
-Συγκρίνοντας τα παραπάνω με τα διαγράμματα του υποερωτήματος (i) βλέπουμε αρχικά ότι έχουμε ελαφρώς μεγαλύτερο σφάλμα στην διαφορά $e_x = x - \hat{x}$. Παρόλα αυτά, κοιτώντας τις γραφικές παραστάσεις που αναφέρονται στο $e = \dot{x} - \dot{\hat{x}}$ (που άλλωστε αυτό ελαχιστοποιούμε), φαίνεται να έχουμε μικρότερο σφάλμα σε σχέση με την προηγούμενη περίπτωση. Η καλύτερη προσομοίωση του συστήματος οφείλεται (όπως έχουμε ήδη αναφέρει) στο γεγονός ότι πλέον δεν έχουμε ως είσοδο απλώς έναν DC όρο, άλλα ένα ημιτονοειδές σήμα (μίας συχνότητας). 
-
-Και πάλι, για να δούμε αν όντως έχουν γίνει σωστές εκτιμήσεις όλων των παραμέτρων παραθέτουμε τις γραφικές παραστάσεις των  $\hat{m}(t), \ \hat{b}(t), \& \ \hat{k}(t)$ για να μπορέσουμε να εξάγουμε σχετικά συμπεράσματα.
-
-\begin{figure}[h!]
-    % \centering
-    % \hfill
-    % First row
-    \begin{subfigure}{0.45\textwidth}
-        \centering
-        \includegraphics[width=1\textwidth, height=0.4\textheight]{plots/t1a_13.png}
-        \caption{}
-        \label{fig:t1a_13}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}{0.45\textwidth}
-        \centering
-        \includegraphics[width=1\textwidth, height=0.4\textheight]{plots/t1a_14.png}
-        \caption{}
-        \label{fig:t1a_14}
-    \end{subfigure}
-    % \hfill
-
-\end{figure}
-
-\begin{figure}[h!]
-    \centering
-    \includegraphics[width=0.47\textwidth, height=0.4\textheight]{plots/t1a_15.png}
-    \caption{}
-    \label{fig:t1a_15}
-\end{figure}
-
-Για συνοχή με το προηγούμενο ερώτημα κρατήσαμε τις ίδιες τιμές για τα $\gamma$ και $\lambda$ και σε αυτήν την περίπτωση εισόδου. 
-Με κατάλληλο fine tuning θα μπορούσαμε να είχαμε ακόμη καλύτερα αποτελέσματα, όμως τα συμπεράσματα που εξάγουμε σε κάθε περίπτωση είναι ανάλογα, μιας και\textemdash όπως φαίνεται τόσο από το διαγράμματα όσο και από τα printed logs\textemdash πλέον τα σφάλματα των εκτιμήσεων έχουν ίδια τάξη μεγέθους (δεν υπάρχουν σημαντικές αποκλίσεις μεταξύ τους). 
-Επίσης, συγκρίνοντας τον μέσο όρο των τριών σφαλμάτων για τις δύο περιπτώσεις εισόδου, βλέπουμε ότι τώρα έχουμε ελαφρώς μικρότερο μέσο σφάλμα εκτίμησης απ' ότι στην περίπτωση της DC εισόδου.
-\textit{Και πάλι τονίζουμε ότι σημαντικό ρόλο στην εκτίμηση παραμέτρων παίζει και το ίδιο το φίλτρο, όπως θα δούμε στην συνέχεια.}
-
-
-Παρακάτω παραθέτουμε τις τελικές εκτιμήσεις των παραμέτρων, με τα σχετικά σφάλματα από τις πραγματικές τιμές τους.
-
-\begin{figure}[h!]
-    \centering
-    \includegraphics[width=0.6\textwidth, height=0.1\textheight]{plots/t1a_16.png}
-    \caption{}
-    \label{fig:t1a_16}
-\end{figure}
-
-Από τα πάνω printed logs είναι φανερό πλέον μπορούμε να διατηρήσουμε μια "ισορροπία" στα σφάλματα ώστε κανένα να μην αποκλίνει σημαντικά από από τα υπόλοιπα (και καμία παράμετρος να μην αποκλίνει σημαντικά από την πραγματική της τιμή). Γι' αυτό άλλωστε, όπως είδαμε, μπορέσαμε να ελαχιστοποιήσουμε σε μεγαλύτερο βαθμό το σφάλμα $e =  \dot{x} - \dot{\hat{x}}$ (την γραφική παράσταση) σε αυτήν την περίπτωση απ' ότι στην προηγούμενη.
-
-\hrule
-
-\vspace{+10pt}
-
-\noindent\textit{\textbf{Περίπτωση Φίλτρου Δεύτερης Τάξης}} 
-
-Για να μελετήσουμε αυτήν την περίπτωση φίλτρου θα θέσουμε:
-\begin{itemize}[noitemsep, nolistsep]
-    \item \texttt{filter\_version = 2}
-    \item \texttt{lambda1 = 0.3}
-    \item \texttt{lambda1 = 0.02}
-    % \item \texttt{gamma = 1}
-\end{itemize}
-Εδώ η τιμή του $\gamma$ θα τεθεί διαφορετική σε κάθε ερώτημα ώστε να μπορέσουμε σε κάθε περίπτωση να δείξουμε όσο το δυνατόν πιο ακριβείς εκτιμήσεις. Πριν προχωρήσουμε, τονίζουμε ότι η επιλογή των $\lambda_1$ και $\lambda_2$ έγινε ώστε να έχουμε τους πόλους στο αριστερό ανοικτό ημιεπίπεδο (όπως είχαμε αναφέρει και στην θεωρητική ανάλυση ότι απαιτείται να ισχύει). 
-
-
-\begin{center}
-    \textbf{(i)} $u(t) = 2.5$
-\end{center}
-
-\noindent Για την υποπερίπτωση της σταθερής εισόδου θέτουμε \texttt{gamma = 0.001} και παίρνουμε τα παρακάτω (αυτήν την φορά δεν παραθέτουμε τις γραφικές παραστάσεις που αναφέρονται σε παραγώγους μιας και σε αυτήν την ανάλυση ελαχιστοποιούμαι το $e_x = x -\hat{x}$):
-
-\begin{figure}[h!]
-    % \centering
-    % \hfill
-    % First row
-    \begin{subfigure}{0.45\textwidth}
-        \centering
-        \includegraphics[width=1.1\textwidth, height=0.25\textheight]{plots/t1a_17.png}
-        \caption{}
-        \label{fig:t1a_17}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}{0.45\textwidth}
-        \centering
-        \includegraphics[width=1.1\textwidth, height=0.25\textheight]{plots/t1a_18.png}
-        \caption{}
-        \label{fig:t1a_18}
-    \end{subfigure}
-    % \hfill
-
-\end{figure}
-Εδώ, η προσομοίωση που κάνουμε δεν δίνει στην αρχή αρκετά καλά αποτελέσματα, μιας και το μικρό $\gamma$ αποτρέπει την γρήγορη αλλαγή των παραμέτρων $\hat{\theta}$ και συνεπώς και των προς εκτίμηση παραμέτρων. Ακόμη και σε αυτήν την περίπτωση όμως, εν τέλη φαίνεται το μοντέλο να μπορεί να προσαρμοστεί στα δεδομένα ελαχιστοποιώντας όσο το δυνατόν περισσότερο το σφάλμα $e_x = x -\hat{x}$.
-
-
-Για να μπορέσουμε να δούμε πόσο καλά και γρήγορα εκτιμούνται οι παράμετροι που ψάχνουμε, παραθέτουμε τις γραφικές παραστάσεις των εκτιμήσεων αυτών για να μπορέσουμε να εξάγουμε σχετικά συμπεράσματα.
-
-\begin{figure}[h!]
-    % \centering
-    % \hfill
-    % First row
-    \begin{subfigure}{0.45\textwidth}
-        \centering
-        \includegraphics[width=1\textwidth, height=0.4\textheight]{plots/t1a_19.png}
-        \caption{}
-        \label{fig:t1a_19}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}{0.45\textwidth}
-        \centering
-        \includegraphics[width=1\textwidth, height=0.4\textheight]{plots/t1a_20.png}
-        \caption{}
-        \label{fig:t1a_20}
-    \end{subfigure}
-    % \hfill
-
-\end{figure}
-
-\begin{figure}[h!]
-    \centering
-    \includegraphics[width=0.47\textwidth, height=0.35\textheight]{plots/t1a_21.png}
-    \caption{}
-    \label{fig:t1a_21}
-\end{figure}
-
-Ένα πρώτο συμπέρασμα που εξάγουμε είναι πως και στις δύο περιπτώσεις φίλτρων, όταν βάζουμε ως είσοδο ένα DC σήμα μπορούμε να κάνουμε πολύ καλή εκτίμηση του $k$. Αυτό οφείλεται τόσο στην ίδια την ΔΕ, αλλά σημαντικό ρόλο παίζει και η επιλογή των $\lambda$ για το φίλτρο, όπως και η τιμή του $\gamma$ που επιλέξαμε.  
-Και πάλι όμως, λόγω της Συνθήκης Επιμένουσας Διέγερσης, ΣΕΔ, δεν μπορούμε να κάνουμε αρκετά καλές προσεγγίσεις για όλες τις παραμέτρους που θέλουμε να εκτιμήσουμε. 
-
-Τέλος για την υποπερίπτωση αυτή, παραθέτουμε τις τελικές εκτιμήσεις των παραμέτρων, με τα σχετικά σφάλματα από τις πραγματικές τιμές τους.
-
-\begin{figure}[h!]
-    \centering
-    \includegraphics[width=0.7\textwidth, height=0.1\textheight]{plots/t1a_22.png}
-    \caption{}
-    \label{fig:t1a_22}
-\end{figure}
-
-
-
-\begin{center}
-    \textbf{(i)} $u(t) = 2.5 \sin(t)$
-\end{center}
-
-\noindent Για την υποπερίπτωση της ημιτονοειδούς εισόδου θέτουμε \texttt{gamma = 1} και παίρνουμε τα παρακάτω:
-
-\begin{figure}[h!]
-    % \centering
-    % \hfill
-    % First row
-    \begin{subfigure}{0.45\textwidth}
-        \centering
-        \includegraphics[width=1.1\textwidth, height=0.25\textheight]{plots/t1a_23.png}
-        \caption{}
-        \label{fig:t1a_23}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}{0.45\textwidth}
-        \centering
-        \includegraphics[width=1.1\textwidth, height=0.25\textheight]{plots/t1a_24.png}
-        \caption{}
-        \label{fig:t1a_24}
-    \end{subfigure}
-    % \hfill
-
-\end{figure}
-
-\vspace{-15pt}
-
-\noindent Όπως και στις προηγούμενες προσομοιώσεις, το σφάλμα που προσπαθούμε να ελαχιστοποιήσουμε, εδώ το  $e_x = x -\hat{x}$, φαίνεται από την γραφική του παράσταση ότι όντως αποσβένει όσο περνάει ο χρόνος προς το μηδέν. Αυτό σημαίνει ότι η on-line αναδρομική μέθοδος που εφαρμόζουμε για την εκτίμηση των παραμέτρων (αν και στην θεωρία δεν είναι το ίδιο αποτελεσματική από τις off-line) μπορεί με το πέρασμα του χρόνου να κάνει όλο και καλύτερες εκτιμήσεις του συστήματος.
-
-
-Για να μπορέσουμε να δούμε πόσο καλά και γρήγορα εκτιμούνται οι παράμετροι που ψάχνουμε και σε αυτήν την υποπερίπτωση, παραθέτουμε τις γραφικές παραστάσεις των εκτιμήσεων αυτών για να εξάγουμε τα σχετικά συμπεράσματα.
-
-\begin{figure}[ht!]
-    % \centering
-    % \hfill
-    % First row
-    \begin{subfigure}{0.45\textwidth}
-        \centering
-        \includegraphics[width=1\textwidth, height=0.35\textheight]{plots/t1a_25.png}
-        \caption{}
-        \label{fig:t1a_25}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}{0.45\textwidth}
-        \centering
-        \includegraphics[width=1\textwidth, height=0.35\textheight]{plots/t1a_26.png}
-        \caption{}
-        \label{fig:t1a_26}
-    \end{subfigure}
-    % \hfill
-
-\end{figure}
-
-\begin{figure}[ht!]
-    \centering
-    \includegraphics[width=0.47\textwidth, height=0.35\textheight]{plots/t1a_27.png}
-    \caption{}
-    \label{fig:t1a_27}
-\end{figure}
-
-Πλέον, παρατηρούμε ότι με το φίλτρο δεύτερης τάξης για την περίπτωση του ημιτονοειδούς σήματος μπορούμε να κάνουμε όλες τις παραμέτρους να συγκλίνουν αρκετά κοντά στις πραγματικές τους τιμές, μέσα στα $20\sec$ της προσομοίωσης. Όλα τα σχετικά σφάλματα των εκτιμήσεων, όπως φαίνονται στα printed logs, είναι περίπου ίδια και μικτότερα από όλες τις προηγούμενες περιπτώσεις (κατά μέσο όρο). Συμπεραίνουμε ότι ο συγκεκριμένος συνδυασμός εισόδου και φίλτρου είναι ο ιδανικότερος για την εκτίμηση των παραμέτρων μας (σε σύγκριση πάντα με τις προηγούμενες περιπτώσεις που αναφέρθηκαν). 
-
-\begin{figure}[ht!]
-    \centering
-    \includegraphics[width=0.8\textwidth, height=0.12\textheight]{plots/t1a_28.png}
-    \caption{}
-    \label{fig:t1a_28}
-\end{figure}
-
-\vspace{+100pt}
-
+με $u(t) \in \mathbb{R}$ και $x(t)\in \mathbb{R}$ να είναι μετρήσιμα και να αποτελούν την είσοδο και την έξοδο του συστήματος, αντίστοιχα, ενώ
+$\theta = [\theta_1, \theta_2]^{\top} \in \mathbb{R}^2$ είναι ένα σταθερό διάνυσμα παραμέτρων. 
+
+Για το πραγματικό μη γραμμικό σύστημα που περιγράφεται από την \eqref{t2:sys_form} ισχύει:
+\begin{equation}\label{t2:f_true}
+    f(x, u, \theta) = - x^3 + \theta_1 \tanh(x) + \theta_2 \frac{1}{1 + x^2} + u, 
+\end{equation}
+όπου $\theta_1, \theta_2 \in [0.5, 2]$ και $u(t)$ είναι δικής μας επιλογής. 
 
 
 \newpage
