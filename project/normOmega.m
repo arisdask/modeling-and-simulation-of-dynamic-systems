@@ -1,5 +1,5 @@
 %% Vector Norm Calculation Script
-clear; clc;
+clear; clc; close all;
 syms t
 
 omega_bar = 0.3;

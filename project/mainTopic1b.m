@@ -28,7 +28,7 @@ Gamma = diag(gamma_vals);
 
 % σ-modification parameters
 M = 3.5;        % Bound for parameter estimates
-sigma = 1;   % σ-modification coefficient
+sigma = 1;      % σ-modification coefficient
 
 %% Initial Conditions
 % True system initial state
@@ -94,7 +94,7 @@ for i = 1:length(t)
     Phi = [x1_filt, x2_filt, 0,       0,       u_filt, 0;
            0,       0,       x1_filt, x2_filt, 0,      u_filt];
     
-    % Estimated output: ŷ = Φ * θ_λ
+    % Estimated output: y_hat = Φ * θ_λ
     x_hat(i, :) = (Phi * theta_lambda_est(i, :)')';
 end
 
@@ -237,6 +237,3 @@ fprintf('b1:  %.4f (True: %.4f - Error: %.2f%%)\n', ...
     theta_est(end, 5), B_true(1), 100 * abs(theta_est(end, 5) - B_true(1)));
 fprintf('b2:  %.4f (True: %.4f - Error: %.2f%%)\n', ...
     theta_est(end, 6), B_true(2), 100 * abs(theta_est(end, 6) - B_true(2))/abs(B_true(2)));
-
-fprintf('\nFinal estimation error norm: %.6f\n', sqrt(e_x(end,1)^2 + e_x(end,2)^2));
-fprintf('Final parameter norm: %.4f (Bound M = %.1f)\n', theta_norms(end), M);

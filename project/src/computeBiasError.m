@@ -7,7 +7,7 @@ function omega = computeBiasError(t, omega_bar, omega_freq)
     
     omega = [omega1; omega2];
     
-    % Ensure ||ω(t)|| ≤ ω_bar
+    % Ensure ||ω(t)|| <= ω_bar
     omega_norm = norm(omega);
     if omega_norm > omega_bar
         omega = omega * (omega_bar / omega_norm);
