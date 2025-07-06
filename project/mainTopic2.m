@@ -1,4 +1,4 @@
-%% Modeling and Simulation of Dynamic Systems - Project - Topic 2a
+%% Modeling and Simulation of Dynamic Systems - Project - Topic 2
 % Author: Aristeidis Daskalopoulos - AEM:10640
 
 clear; clc; close all;
