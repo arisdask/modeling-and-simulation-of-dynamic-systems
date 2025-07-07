@@ -1231,7 +1231,7 @@ $\theta = [\theta_1, \theta_2]^{\top} \in \mathbb{R}^2$ είναι ένα στα
 και δίνει στην έξοδό του την (επίσης μετρήσιμη) συνάρτηση $x(t) = S[u(t)]$.
 
 
-\subsection{Ερώτημα Α}
+\subsection{Ανάλυση Βημάτων}
 Ένα πρώτο βήμα για την κατανόηση του συστήματός μας (μιας και δεν έχουμε καμία πληροφορία για αυτό) 
 είναι να ελέγξουμε αν αυτό είναι γραμμικό και χρονοαμετάβλητο.
 Για να το κάνουμε αυτό μπορούμε να δοκιμάσουμε να δώσουμε στο σύστημα διάφορα ζεύγη εισόδων $\{u_1(t), u_2(t)\}$
@@ -1358,6 +1358,161 @@ H μέθοδος κλίσης για το πρόβλημά μας δίνει τ�
         
 \end{enumerate}
 
+\subsection{Αποτελέσματα}
+
+Ακολουθώντας τα βήματα που περιγράφηκαν προηγουμένως, 
+υλοποιούμε και εκτελούμε τον κώδικα του αρχείου \textit{mainTopic2.m}. 
+Σε αυτόν ορίζουμε τη συνάρτηση εισόδου καθώς και τις συναρτήσεις βάσης, 
+όπως απεικονίζονται στο Σχήμα~\ref{fig:eqs}.
+
+Κατά την εκτέλεση του κώδικα, τυπώνονται logs (Σχήμα~\ref{fig:sols}) που περιέχουν τα αποτελέσματα 
+όλων των υπολογιζόμενων μετρικών για κάθε μοντέλο που εφαρμόστηκε στην προσπάθεια προσαρμογής 
+(fit) των δεδομένων μέσω cross-validation.
+
+
+\begin{figure}[ht!]
+    \centering
+    \begin{minipage}{0.9\textwidth}
+        \centering
+        \includegraphics[width=0.7\linewidth]{plots/plotB_2_input_func.png}
+        % \caption{Image 1}
+    \end{minipage}
+    
+    \vspace{1em} % Space between rows
+    
+    \centering
+    \begin{minipage}{0.9\textwidth}
+        \centering
+        \includegraphics[width=0.705\linewidth]{plots/plotB_3_models.png}
+        % \caption{Image 2}
+    \end{minipage}
+
+    \caption{}
+    \label{fig:eqs}
+\end{figure}
+
+Στη συνέχεια, με βάση τις μετρικές του cross-validation, 
+επιλέγουμε το μοντέλο που παρουσιάζει το ελάχιστο σφάλμα μοντελοποίησης. 
+Για το επιλεγμένο μοντέλο, προχωρούμε σε νέα εκπαίδευση χρησιμοποιώντας ολόκληρο το σύνολο δεδομένων 
+(χωρίς διαχωρισμό για cross-validation) και παραθέτουμε τις τελικές τιμές των παραμέτρων $\theta$, 
+καθώς και τις αντίστοιχες τιμές των δεικτών root mean square error (RMSE) και mean absolute error (MAE). 
+Οι τελικές τιμές των $\theta$ αποτελούν την απαιτούμενη πληροφορία για την πλήρη αναπαράσταση του μοντέλου (δεδομένων των συναρτήσεων βάσης του).
+
+Σύμφωνα με τα αποτελέσματα του cross-validation, 
+το μοντέλο με συναρτήσεις βάσης Γκαουσιανής (RBFs) επιτυγχάνει τη βέλτιστη προσαρμογή, 
+ενώ το πολυωνυμικό μοντέλο εμφανίζει τη χαμηλότερη επίδοση.
+
+\begin{figure}[ht!]
+    \centering
+    \begin{minipage}{0.9\textwidth}
+        \centering
+        \includegraphics[width=0.7\linewidth]{plots/plotB_1_logs.png}
+        % \caption{Image 1}
+    \end{minipage}
+
+    \caption{}
+    \label{fig:sols}
+\end{figure}
+
+Στο Σχήμα~\ref{fig:plt1}, παρουσιάζεται στην επάνω σειρά η απόκριση $x(t)$ του πραγματικού συστήματος 
+και των προσεγγιστικών μοντέλων στην ίδια είσοδο, καθώς και οι αντίστοιχες γραφικές παραστάσεις των σφαλμάτων $e(t) = x(t) - \hat{x}(t)$. 
+Στην κάτω σειρά, απεικονίζονται η είσοδος του συστήματος (από την οποία επιλέχθηκαν χρονικά διαστήματα για το training στο CV), 
+καθώς και το μέσο τετραγωνικό σφάλμα (mean square error) από το cross-validation συνοδευόμενο από τις αντίστοιχες τυπικές αποκλίσεις.
+
+\begin{figure}[ht!]
+    \centering
+    \begin{minipage}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.9\linewidth]{plots/plotB_8_all.png}
+        % \caption{Image 1}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.9\linewidth]{plots/plotB_9_all_err.png}
+        % \caption{Image 2}
+    \end{minipage}
+    
+    \vspace{1em} % Space between rows
+    
+    \centering
+    \begin{minipage}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.9\linewidth]{plots/plotB_12_input.png}
+        % \caption{Image 1}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.9\linewidth]{plots/plotB_10_cv_mse.png}
+        % \caption{Image 1}
+    \end{minipage}
+    
+    \caption{}
+    \label{fig:plt1}
+\end{figure}
+
+Τα Σχήματα~\ref{fig:measures} περιλαμβάνουν τις γραφικές παραστάσεις των τιμών του MSE, 
+τόσο για την περίπτωση του cross-validation όσο και για την περίπτωση απευθείας εκπαίδευσης χωρίς διαχωρισμό των δεδομένων, 
+καθώς και του κριτηρίου Akaike (AIC). 
+Και οι δύο μετρικές συγκλίνουν στο συμπέρασμα ότι το Gaussian μοντέλο υπερτερεί των υπολοίπων.
+
+
+\begin{figure}[ht!]
+    \centering
+    \begin{minipage}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.5\linewidth]{plots/plotB_6_mse.png}
+        % \caption{Image 1}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.5\linewidth]{plots/plotB_7_aic.png}
+        % \caption{Image 2}
+    \end{minipage}
+
+    \caption{}
+    \label{fig:measures}
+\end{figure}
+
+Τέλος, για λόγους πληρότητας και για πιο clean απεικόνιση των αποτελεσμάτων του τελικού/βέλτιστου\footnote{
+Βέλτιστο σε σχέση με τα υπόλοιπα που επιλέχθηκαν.
+} 
+μοντέλου, στο Σχήμα~\ref{fig:best_} παρατίθεται η χρονική εξέλιξη των $x(t)$ του πραγματικού συστήματος 
+και των $\hat{x}(t)$ του επιλεγμένου μοντέλου, συνοδευόμενη από τη γραφική παράσταση του σφάλματος εκτίμησης.
+
+\begin{figure}[ht!]
+    \centering
+    \begin{minipage}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.9\linewidth]{plots/plotB_4_best.png}
+        % \caption{Image 1}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.9\linewidth]{plots/plotB_5_best_err.png}
+        % \caption{Image 2}
+    \end{minipage}
+
+    \caption{}
+    \label{fig:best_}
+\end{figure}
+
+Αφού διαπιστώσαμε ότι το σύστημά μας μπορεί να προσεγγιστεί ικανοποιητικά με τη χρήση συναρτήσεων βάσης τύπου Gaussian (RBFs), 
+προχωρήσαμε στη δοκιμή διαφόρων τιμών για τις παραμέτρους $\gamma$ και $\lambda$\footnote{
+Σε αυτό το σημείο εξετάσαμε και την επίδραση της αλλαγής της συνάρτησης εισόδου στο πόσο καλά μπορεί να κάνει fit το μοντέλο. 
+Τα Gaussian RBFs μπορούν σε συνεχή σύνολα να κάνουν αρκούντως καλές προσεγγίσεις ώστε η τάξη μεγέθους του σφάλματος να μην αλλάζει δραματικά (εξού και το μικρό standard deviation στο σχήμα~\ref{fig:plt1}). 
+}. 
+Παράλληλα, εξετάσαμε την επίδραση της προσθαφαίρεσης συναρτήσεων βάσης, με στόχο να αξιολογήσουμε σε ποιο βαθμό επηρεάζεται η ακρίβεια του μοντέλου (κοιτώντας τα logs των μετρικών που τυπώνουμε)
+και κατά πόσο είναι εφικτή η βελτίωση της προσέγγισης χωρίς σημαντική αύξηση της πολυπλοκότητας του μοντέλου.
+
+Μέσω trial and error\textemdash 
+και μη έχοντας κάποιες προδιαγραφές για το επιθυμητό επίπεδο ακρίβειας προσεγγίσεις του πραγματικού συστήματος (μιας και αυτό εξαρτάται από την εφαρμογή στο κάθε πεδίο)\textemdash 
+καταλήξαμε ότι το μοντέλο με τα RBFs της ~\ref{fig:eqs} που παρουσιάζεται στο Σχήμα~\ref{fig:best_} 
+και έχει $\theta$ που φαίνονται στο ~\ref{fig:sols}, 
+αποτελεί μια απλή αλλά επαρκώς ακριβή προσέγγιση της συμπεριφοράς του πραγματικού συστήματος.
 
 
 \newpage
