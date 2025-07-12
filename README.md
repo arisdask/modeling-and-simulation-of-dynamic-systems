@@ -23,13 +23,13 @@ Focuses on real-time (online) parameter estimation techniques:
 - **Online Parameter Estimation Methods**: Implements and compares multiple approaches including:
   - Gradient Method for iterative parameter updates
   - Lyapunov method in parallel configuration
-  - Lyapunov method in mixed configuration
+  - Lyapunov method in series-parallel configuration
 - **Noise Impact Assessment**: Analyzes how different estimation methods perform under various noise conditions
 
 ### Final Project: Constrained Estimation and Black Box System
 
-- **Constrained Parameter Estimation**: Utilizes the Mixed Configuration Lyapunov method with projection techniques to ensure solutions remain within feasible parameter bounds
-- **Polar Error Integration**: Implements gradient method incorporating polar error ω using σ-modification technique (continuous version)
+- **Constrained Parameters Estimation**: Utilizes the series-parallel configuration Lyapunov method with projection techniques to ensure solutions remain within feasible parameters' bounds
+- **Polar Error Integration**: Implements a gradient-based method to estimate parameters in a system affected by polar error ω(t), using the continuous version of the σ-modification technique
 - **Black Box System Identification**: Addresses model structure selection and online parameter estimation for an unknown system
 
-Each section of the repository is self-contained, with source code, utility functions, and output plots organized for clarity. 
+Each section of the repository is self-contained, with source code, utility functions, and output plots. 
